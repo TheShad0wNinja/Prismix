@@ -1,5 +1,7 @@
 package com.prismix.client.gui.components;
 
+import com.prismix.client.gui.screens.MainFrame;
+import com.prismix.client.gui.screens.MainScreen;
 import com.prismix.client.gui.themes.Theme;
 import com.prismix.client.gui.themes.ThemeManager;
 import com.prismix.client.utils.AvatarDisplayHelper;
@@ -47,6 +49,7 @@ public class RoomEntryPanel extends ThemedPanel {
             public void mouseClicked(MouseEvent e) {
                 // TODO: Handle room selection/opening the chat for this room
                 System.out.println("Clicked on room: " + room.getName());
+                MainScreen.switchRoom(room);
             }
         });
     }

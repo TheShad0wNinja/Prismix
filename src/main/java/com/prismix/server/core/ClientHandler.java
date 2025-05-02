@@ -13,11 +13,21 @@ public class ClientHandler implements Runnable {
     Socket socket;
     ObjectOutputStream out;
     ObjectInputStream in;
-    UserHandler userHandler;
+    Server server;
 
-    public ClientHandler(Socket socket, UserHandler userHandler) {
+    public ClientHandler(Socket socket, Server server) {
         this.socket = socket;
-        this.userHandler = userHandler;
+        this.server = server;
+    }
+
+    public void sendMessage(NetworkMessage msg) {
+        System.out.println("Sending message: " + msg);
+        try {
+            out.writeObject(msg);
+            out.flush();
+        } catch (IOException e) {
+            System.out.println("Error sending message: " + e.getMessage());
+        }
     }
 
     private void initSession() throws IOException {
@@ -27,26 +37,16 @@ public class ClientHandler implements Runnable {
 
     private void startSession() {
         System.out.println("Starting session with: " + socket.getRemoteSocketAddress());
-        while (true) {
+        while (socket.isConnected() && !socket.isClosed()) {
             try {
                 NetworkMessage message = (NetworkMessage) in.readObject();
                 System.out.println("Received message: " + message);
-                handleMessage(message);
+                server.processMessage(message, this);
             } catch (IOException | ClassNotFoundException e) {
                 System.out.println("Error: " + e.getMessage());
-                throw new RuntimeException(e);
+                break;
             }
         }
-    }
-
-    private void handleMessage(NetworkMessage message) throws IOException {
-        NetworkMessage response = switch (message.getMessageType()) {
-            case LOGIN_REQUEST, LOGIN_RESPONSE, SIGNUP_REQUEST, SIGNUP_RESPONSE ->
-                    userHandler.handleMessage(message);
-            default -> null;
-        };
-        System.out.println("Response: " + response);
-        out.writeObject(response);
     }
 
     @Override

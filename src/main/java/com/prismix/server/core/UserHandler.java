@@ -12,27 +12,27 @@ public class UserHandler {
         userManager = new UserManager(userRepository);
     }
 
-    public NetworkMessage handleMessage(NetworkMessage message) {
-        return switch (message.getMessageType()) {
+    public void handleMessage(NetworkMessage message, ClientHandler clientHandler) {
+        switch (message.getMessageType()) {
             case SIGNUP_REQUEST -> {
                 SignupRequest msg = (SignupRequest) message;
                 User user = userManager.registerUser(msg.username(), msg.username(), null);
                 if (user == null) {
-                    yield new SignupResponse(false, "Invalid ", null);
+                    new SignupResponse(false, "Invalid ", null);
+                    break;
                 }
-                yield new SignupResponse(true, null, user);
+                new SignupResponse(true, null, user);
             }
             case LOGIN_REQUEST -> {
                 LoginRequest msg = (LoginRequest) message;
                 User user = userManager.login(msg.username());
-                if (user == null) {
-                    yield new LoginResponse(false, "Invalid Username", null);
-                }
-                yield new LoginResponse(true, null, user);
+                LoginResponse response;
+                if (user == null)
+                    response = new LoginResponse(false, "Invalid Username", null);
+                else
+                    response = new LoginResponse(true, null, user);
+                clientHandler.sendMessage(response);
             }
-            default -> {
-                yield null;
-            }
-        };
+        }
     }
 }

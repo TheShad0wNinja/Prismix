@@ -9,14 +9,23 @@ import java.net.URL;
 
 public class DatabaseManager {
 
-    private static Connection connection = null;
-//    private static final String DATABASE_NAME = "chat.db";
-//    private static final String DATABASE_DIR = "server/"; // Directory within resources
-    private static final String DATABASE_URL_PREFIX = "jdbc:sqlite:";
+    private static DatabaseManager instance;
+    private Connection connection = null;
 
     private DatabaseManager() {}
 
+    public static synchronized DatabaseManager getInstance() {
+        if (instance == null) {
+            instance = new DatabaseManager();
+        }
+        return instance;
+    }
+
     public static Connection getConnection() throws SQLException {
+        return getInstance().getConnectionReal();
+    }
+
+    private Connection getConnectionReal() throws SQLException {
         if (connection == null || connection.isClosed()) {
             try {
                 // Load the SQLite JDBC driver
@@ -31,7 +40,7 @@ public class DatabaseManager {
                 }
 
                 // Get the path to the database file within the resources directory
-                System.out.println("Connecting to database: " + DATABASE_DIR + DATABASE_NAME);
+//                System.out.println("Connecting to database: " + DATABASE_DIR + DATABASE_NAME);
                 URL resourceUrl = DatabaseManager.class.getClassLoader().getResource(DATABASE_DIR + DATABASE_NAME);
 
                 String dbPath;
@@ -46,10 +55,10 @@ public class DatabaseManager {
                     dbPath = "src/main/resources/" + DATABASE_DIR + DATABASE_NAME;
                 }
 
-                String dbUrl = DATABASE_URL_PREFIX + dbPath;
-                connection = DriverManager.getConnection(dbUrl);
+                String dbUrl = "jdbc:sqlite:" + dbPath;
+                this.connection = DriverManager.getConnection(dbUrl);
 
-                System.out.println("Database connection established to: " + dbUrl);
+//                System.out.println("Database connection established to: " + dbUrl);
 
                 initializeDatabase();
 
@@ -65,7 +74,7 @@ public class DatabaseManager {
         return connection;
     }
 
-    private static void initializeDatabase() {
+    private void initializeDatabase() {
         // SQL statements to create tables
 
         String createUserTableSQL = """
@@ -133,7 +142,7 @@ public class DatabaseManager {
         }
     }
 
-    public static void closeConnection() {
+    public void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
@@ -145,7 +154,7 @@ public class DatabaseManager {
     }
 
     // Add a method to handle graceful shutdown
-//    public static void registerShutdownHook() {
+//    public void registerShutdownHook() {
 //        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 //            System.out.println("Shutting down database connection...");
 //            closeConnection();

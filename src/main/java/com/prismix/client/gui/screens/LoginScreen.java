@@ -15,17 +15,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 
-public class LoginScreen extends JFrame {
+public class LoginScreen extends ThemedPanel {
+    private JButton loginButton;
+    private JButton signupButton;
+
     public LoginScreen() {
-        setTitle("Login");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-
-        JPanel mainPanel = new ThemedPanel();
-        setLayout(new BorderLayout(5, 5));
-        add(mainPanel, BorderLayout.CENTER);
-
-        mainPanel.setLayout(new GridBagLayout());
+        setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
 
         c.gridx = 0;
@@ -36,9 +31,7 @@ public class LoginScreen extends JFrame {
         c.insets = new Insets(10, 15, 10, 15);
 
         JLabel loginLabel = new ThemedLabel("Login", true);
-//        loginLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-//        loginLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        mainPanel.add(loginLabel, c);
+        add(loginLabel, c);
 
         c.gridx = 0;
         c.gridy = 1;
@@ -48,9 +41,7 @@ public class LoginScreen extends JFrame {
         c.insets = new Insets(10, 15, 10, 15);
 
         JTextField usernameField = new ThemedTextField();
-//        usernameField.setAlignmentX(Component.CENTER_ALIGNMENT);
-//        usernameField.setHorizontalAlignment(SwingConstants.CENTER);
-        mainPanel.add(usernameField, c);
+        add(usernameField, c);
 
         c.gridx = 0;
         c.gridy = 2;
@@ -60,9 +51,7 @@ public class LoginScreen extends JFrame {
         c.insets = new Insets(10, 15, 10, 15);
 
         JButton loginButton = new ThemedButton("Login");
-//        loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-//        loginButton.setHorizontalAlignment(SwingConstants.CENTER);
-        mainPanel.add(loginButton, c);
+        add(loginButton, c);
 
         c.gridx = 1;
         c.gridy = 2;
@@ -71,17 +60,13 @@ public class LoginScreen extends JFrame {
         c.insets = new Insets(10, 15, 10, 15);
 
         JButton signupBtn = new ThemedButton("Signup");
-        mainPanel.add(signupBtn, c);
+        add(signupBtn, c);
 
         loginButton.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> AuthManager.getInstance().login(usernameField.getText(),  (user) -> {
-                    System.out.println("LOGGED IN :" + user);
-                    return null;
-                })).start();
-                System.out.println(usernameField.getText());
+                new Thread(() -> AuthManager.getInstance().login(usernameField.getText())).start();
                 System.out.println(usernameField.getText());
             }
         });
@@ -90,18 +75,17 @@ public class LoginScreen extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> AuthManager.getInstance().signup(usernameField.getText(), "LiGMA BOI", null, (user) -> {
-                    System.out.println(user);
-                    return null;
-                })).start();
+                new Thread(() -> AuthManager.getInstance().signup(usernameField.getText(), usernameField.getText(), null)).start();
                 System.out.println(usernameField.getText());
             }
         });
-
-        setVisible(true);
     }
 
-    public static void main(String[] args) {
-        LoginScreen loginScreen = new LoginScreen();
+    public JButton getLoginButton() {
+        return loginButton;
+    }
+
+    public JButton getSignupButton() {
+        return signupButton;
     }
 }

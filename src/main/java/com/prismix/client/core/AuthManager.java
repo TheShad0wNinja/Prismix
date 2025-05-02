@@ -1,10 +1,8 @@
 package com.prismix.client.core;
 
+import com.prismix.client.gui.screens.MainFrame;
 import com.prismix.common.model.User;
-import com.prismix.common.model.network.LoginRequest;
-import com.prismix.common.model.network.LoginResponse;
-import com.prismix.common.model.network.SignupRequest;
-import com.prismix.common.model.network.SignupResponse;
+import com.prismix.common.model.network.*;
 
 import java.io.IOException;
 import java.util.function.Function;
@@ -29,35 +27,41 @@ public class AuthManager {
         return getInstance().user;
     }
 
-    public void login(String username, Function<User, Void> callback) {
+    public void login(String username) {
         ConnectionManager manager = ConnectionManager.getInstance();
         try {
             manager.sendMessage(new LoginRequest(username));
-            LoginResponse response = (LoginResponse) manager.receiveMessage();
-            if (!response.status())
-                throw new IllegalArgumentException(response.errorMessage());
-            else {
-                user = response.user();
-                callback.apply(user);
-            }
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             System.out.println(e.getMessage());
         }
     }
 
-    public void signup(String username, String displayName, byte[] avatar, Function<User, Void> callback) {
+    public void signup(String username, String displayName, byte[] avatar) {
         ConnectionManager manager = ConnectionManager.getInstance();
         try {
             manager.sendMessage(new SignupRequest(username, displayName, avatar));
-            SignupResponse response = (SignupResponse) manager.receiveMessage();
-            if (!response.status())
-                throw new IllegalArgumentException(response.errorMessage());
-            else {
-                user = response.user();
-                callback.apply(user);
-            }
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             System.out.println(e.getMessage());
+        }
+    }
+
+    public void handleMessage(NetworkMessage msg) {
+        if (msg.getMessageType() == NetworkMessage.MessageType.LOGIN_RESPONSE) {
+            LoginResponse res = (LoginResponse) msg;
+            if (res.status()) {
+                user = res.user();
+                System.out.println("Logged in: " + user);
+                MainFrame.switchPage("main");
+            }
+        } else if (msg.getMessageType() == NetworkMessage.MessageType.SIGNUP_RESPONSE) {
+            SignupResponse res = (SignupResponse) msg;
+            if (res.status()) {
+                user = res.user();
+                System.out.println("Logged in: " + user);
+                MainFrame.switchPage("main");
+            }
+        } else {
+            user = null;
         }
     }
 }

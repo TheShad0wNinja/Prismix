@@ -25,6 +25,10 @@ public class ConnectionManager {
        return instance;
     }
 
+    public boolean isConnected() {
+        return socket != null && socket.isConnected() && !socket.isClosed();
+    }
+
     private void startConnection() {
         try {
             System.out.println("Starting connection...");
@@ -43,7 +47,6 @@ public class ConnectionManager {
     }
 
     public NetworkMessage receiveMessage() throws IOException, ClassNotFoundException {
-        in.readObject();
         return (NetworkMessage) in.readObject();
     }
 }

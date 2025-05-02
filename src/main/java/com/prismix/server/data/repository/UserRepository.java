@@ -77,8 +77,11 @@ public class UserRepository {
                     String displayName = rs.getString("display_name");
                     byte[] avatar = rs.getBytes("avatar");
 
+                    System.out.println("User: " + username + ", id: " + id + ", displayName: " + displayName);
                     return new User(id, username, displayName, avatar);
                 }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
             }
         } catch (SQLException ex) {
             System.out.println("Unable to get user: " + ex.getMessage());
