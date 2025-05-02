@@ -1,5 +1,7 @@
 package com.prismix.client.gui.components;
 
+import com.prismix.client.gui.components.themed.ThemedButton;
+import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.themes.Theme;
 import com.prismix.client.gui.themes.ThemeManager;
 import com.prismix.common.model.Room;
@@ -8,24 +10,16 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 
-public class GroupChatListPanel extends ThemedPanel {
-
+public class ChatSidebar extends ThemedPanel {
     private JPanel roomsPanel; // Panel to hold individual room entries
     private JScrollPane scrollPane;
     private ThemedButton createRoomButton;
 
-    public GroupChatListPanel() {
-        super();
-        setLayout(new BorderLayout()); // Use BorderLayout
+    public ChatSidebar(ArrayList<Room> rooms) {
+        super(Variant.PRIMARY );
         initComponents();
-        updateRoomList(new ArrayList<Room>(java.util.List.of(
-                new Room("ligma", null),
-                new Room("ligma", null),
-                new Room("ligma", null),
-                new Room("ligma", null),
-                new Room("ligma", null),
-                new Room("balls", null)
-        )));
+
+        updateRoomList(rooms);
 
         createRoomButton.addActionListener(e -> {
             System.out.println("Create New Room button clicked");
@@ -34,18 +28,18 @@ public class GroupChatListPanel extends ThemedPanel {
     }
 
     private void initComponents() {
-        roomsPanel = new JPanel();
+        setLayout(new BorderLayout()); // Use BorderLayout
+
+        roomsPanel = new ThemedPanel(Variant.PRIMARY);
         roomsPanel.setLayout(new BoxLayout(roomsPanel, BoxLayout.Y_AXIS));
-        roomsPanel.setOpaque(false);
 
         scrollPane = new JScrollPane(roomsPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
-        createRoomButton = new ThemedButton("Create New Room");
+        createRoomButton = new ThemedButton("Create new Room");
 
         add(scrollPane, BorderLayout.CENTER);
-        add(createRoomButton, BorderLayout.SOUTH);
 
         applyTheme(ThemeManager.getCurrentTheme());
     }
@@ -56,6 +50,8 @@ public class GroupChatListPanel extends ThemedPanel {
             RoomEntryPanel roomEntry = new RoomEntryPanel(room);
             roomsPanel.add(roomEntry);
         }
+        roomsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        roomsPanel.add(createRoomButton);
         roomsPanel.add(Box.createVerticalGlue());
 
         roomsPanel.revalidate();
@@ -65,18 +61,17 @@ public class GroupChatListPanel extends ThemedPanel {
     @Override
     public void applyTheme(Theme theme) {
         super.applyTheme(theme);
+        if (roomsPanel != null)
+            roomsPanel.setBackground(theme.getSurfaceVariantColor());
+
         if (scrollPane != null) {
-            scrollPane.getViewport().setBackground(theme.getBackgroundColor());
-            scrollPane.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, theme.getBackgroundColor().darker()));
+            scrollPane.getViewport().setBackground(theme.getSurfaceVariantColor());
+            scrollPane.getViewport().setOpaque(true);
         }
     }
 
-    // Getters for components if needed (e.g., to add action listeners to room entries)
-    public JPanel getRoomsPanel() {
-        return roomsPanel;
-    }
-
-    public ThemedButton getCreateRoomButton() {
-        return createRoomButton;
+    @Override
+    public Dimension getMaximumSize() {
+        return new Dimension(250, getPreferredSize().height);
     }
 }

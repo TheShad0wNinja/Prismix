@@ -14,10 +14,7 @@ public class MessageListener implements Runnable {
     @Override
     public void run() {
         ConnectionManager manager = ConnectionManager.getInstance();
-        System.out.println("Listing to messages");
-
         while (manager.isConnected()) {
-            System.out.println(manager);
             try {
                 NetworkMessage msg = manager.receiveMessage();
                 System.out.println("Received message: " + msg);

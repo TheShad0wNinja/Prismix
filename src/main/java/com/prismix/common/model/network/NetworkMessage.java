@@ -4,16 +4,18 @@ import java.io.Serializable;
 
 public interface NetworkMessage extends Serializable {
     public enum MessageType {
-        // Client to Server Messages
+        // AUTH Messages
         LOGIN_REQUEST, LOGIN_RESPONSE,
         SIGNUP_REQUEST, SIGNUP_RESPONSE,
+
+        // Info Messages
+        GET_ROOMS_REQUEST, GET_ROOMS_RESPONSE, // Get List of user rooms
 
 //        SEND_TEXT_MESSAGE,
 //        SEND_FILE_MESSAGE,
 //        CREATE_ROOM_REQUEST,
 //        JOIN_ROOM_REQUEST,
 //        LEAVE_ROOM_REQUEST,
-//        GET_ROOMS_REQUEST, // Request list of rooms the user is in
 //        GET_USERS_REQUEST, // Request list of online users
 //        GET_ROOM_MEMBERS_REQUEST,
 //        GET_MESSAGES_REQUEST, // Request message history

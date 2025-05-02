@@ -1,9 +1,13 @@
 package com.prismix.client.gui.components;
 
-import com.prismix.client.gui.screens.MainFrame;
-import com.prismix.client.gui.screens.MainScreen;
+import com.prismix.client.core.ApplicationContext;
+import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.gui.components.themed.ThemedButton;
+import com.prismix.client.gui.components.themed.ThemedLabel;
+import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.themes.Theme;
 import com.prismix.client.gui.themes.ThemeManager;
+import com.prismix.client.gui.themes.ThemePainter;
 import com.prismix.client.utils.AvatarDisplayHelper;
 import com.prismix.common.model.Room;
 
@@ -14,7 +18,6 @@ import java.awt.event.MouseEvent;
 
 public class RoomEntryPanel extends ThemedPanel {
 
-    private static final int HORIZONTAL_SPACING = 240;
     private static final int VERTICAL_SPACING = 4;
     private final Room room;
     private JLabel roomAvatarLabel;
@@ -24,9 +27,10 @@ public class RoomEntryPanel extends ThemedPanel {
     private Color defaultTextColor;
     private Color hoverBackgroundColor;
     private Color hoverTextColor;
+    private boolean isHovered;
 
     public RoomEntryPanel(Room room) {
-        super();
+        super(Variant.SURFACE_ALT, true);
         this.room = room;
 
         initComponents();
@@ -35,27 +39,35 @@ public class RoomEntryPanel extends ThemedPanel {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                setBackground(hoverBackgroundColor);
+                setHover(true);
                 roomNameLabel.setForeground(hoverTextColor);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                setBackground(defaultBackgroundColor);
+                setHover(false);
                 roomNameLabel.setForeground(defaultTextColor);
             }
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                // TODO: Handle room selection/opening the chat for this room
-                System.out.println("Clicked on room: " + room.getName());
-                MainScreen.switchRoom(room);
+                ApplicationContext.getEventBus().publish(new ApplicationEvent(
+                    ApplicationEvent.Type.ROOM_SELECTED,
+                    room
+                ));
             }
         });
     }
 
+    private void setHover(boolean hover) {
+        if (this.isHovered != hover) {
+            this.isHovered = hover;
+            repaint();
+        }
+    }
+
     private void initComponents() {
-        setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5)); // Simple layout for the entry
+        setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10)); // Simple layout for the entry
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // Indicate clickable
 
         roomAvatarLabel = new ThemedLabel();
@@ -86,17 +98,39 @@ public class RoomEntryPanel extends ThemedPanel {
         Dimension preferredSize = getPreferredSize();
         // Return a dimension with max height equal to preferred height (plus spacing)
         // Allow stretching horizontally (Integer.MAX_VALUE)
-        return new Dimension(HORIZONTAL_SPACING, preferredSize.height + VERTICAL_SPACING);
+        return new Dimension(Integer.MAX_VALUE, preferredSize.height + VERTICAL_SPACING);
     }
 
     @Override
     public void applyTheme(Theme theme) {
-        this.defaultBackgroundColor = theme.getBackgroundColor();
-        this.hoverBackgroundColor = theme.getHoverColor().brighter();
-        this.hoverTextColor = theme.getBackgroundColor();
-        this.defaultTextColor = theme.getForegroundColor();
+        super.applyTheme(theme);
+
+        this.defaultBackgroundColor = theme.getSurfaceVariantColor();
+        this.hoverBackgroundColor = theme.getTertiaryColor();
+        this.hoverTextColor = theme.getOnTertiaryColor();
+        this.defaultTextColor = theme.getOnSurfaceVariantColor();
 
         setBackground(defaultBackgroundColor);
+
+        repaint();
+    }
+
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g.create();
+
+        int width = getWidth();
+        int height = getHeight();
+
+        Color currentBackgroundColor = defaultBackgroundColor;
+        if (isHovered) {
+            currentBackgroundColor = this.hoverBackgroundColor;
+        }
+
+        ThemePainter.paintRoundedBackground(g2d, currentBackgroundColor, 0, 0, width, height, this.cornerRadius);
+
+        g2d.dispose();
     }
 
     @Override

@@ -1,30 +1,21 @@
 package com.prismix.client.core;
 
-import com.prismix.client.gui.screens.MainFrame;
+import com.prismix.client.core.ApplicationEvent;
 import com.prismix.common.model.User;
 import com.prismix.common.model.network.*;
 
 import java.io.IOException;
-import java.util.function.Function;
 
 public class AuthManager {
-    private static AuthManager instance;
+    private final EventBus eventBus;
     private User user;
 
-    private AuthManager() {}
-
-    public static AuthManager getInstance() {
-        if (instance == null) {
-            instance = new AuthManager();
-        }
-        return instance;
+    public AuthManager(EventBus eventBus) {
+        this.eventBus = eventBus;
     }
 
-    public static User getUser() {
-        if (instance == null) {
-            return null;
-        }
-        return getInstance().user;
+    public User getUser() {
+        return user;
     }
 
     public void login(String username) {
@@ -50,15 +41,19 @@ public class AuthManager {
             LoginResponse res = (LoginResponse) msg;
             if (res.status()) {
                 user = res.user();
-                System.out.println("Logged in: " + user);
-                MainFrame.switchPage("main");
+                eventBus.publish(new ApplicationEvent(
+                    ApplicationEvent.Type.USER_LOGGED_IN,
+                    user
+                ));
             }
         } else if (msg.getMessageType() == NetworkMessage.MessageType.SIGNUP_RESPONSE) {
             SignupResponse res = (SignupResponse) msg;
             if (res.status()) {
                 user = res.user();
-                System.out.println("Logged in: " + user);
-                MainFrame.switchPage("main");
+                eventBus.publish(new ApplicationEvent(
+                    ApplicationEvent.Type.USER_LOGGED_IN,
+                    user
+                ));
             }
         } else {
             user = null;

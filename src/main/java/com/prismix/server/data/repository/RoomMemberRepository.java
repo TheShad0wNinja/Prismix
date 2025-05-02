@@ -86,7 +86,8 @@ public class RoomMemberRepository {
 
     public List<Room> getUserRooms(int userId) throws SQLException {
         List<Room> rooms = new ArrayList<>();
-        String sql = "SELECT room_id FROM room_member WHERE user_id = ?";
+//        String sql = "SELECT room_id FROM room_member WHERE user_id = ?";
+        String sql = "SELECT r.id, r.name, r.avatar FROM room_member rm JOIN room r ON rm.room_id = r.id WHERE rm.user_id = ?";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -95,15 +96,15 @@ public class RoomMemberRepository {
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                int roomId = rs.getInt("room_id");
-                Room room = roomRepository.getRoomById(roomId);
-                if (room != null) {
-                    rooms.add(room);
-                }
+                int roomId = rs.getInt("id");
+                String name = rs.getString("name");
+                byte[] avatar = rs.getBytes("avatar");
+
+                Room room = new Room(roomId, name, avatar);
+                rooms.add(room);
             }
         } catch (SQLException e) {
             System.err.println("Error fetching user's rooms: " + e.getMessage());
-            throw e;
         }
         return rooms;
     }

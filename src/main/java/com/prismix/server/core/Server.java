@@ -1,7 +1,8 @@
 package com.prismix.server.core;
 
-import com.prismix.common.model.User;
 import com.prismix.common.model.network.NetworkMessage;
+import com.prismix.server.data.manager.RoomManager;
+import com.prismix.server.data.manager.UserManager;
 import com.prismix.server.data.repository.UserRepository;
 
 import java.io.IOException;
@@ -11,10 +12,14 @@ import java.util.HashMap;
 
 public class Server {
     private final int PORT = 8008;
-    private final UserHandler userHandler;
+    private final AuthHandler userHandler;
+    private final HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers;
 
     public Server() throws IOException {
-        userHandler = new UserHandler(new UserRepository());
+        requestHandlers = new HashMap<>();
+        new AuthHandler(requestHandlers);
+        new RoomHandler(requestHandlers);
+
         ServerSocket ss = new ServerSocket(PORT);
         while (true) {
             Socket socket = ss.accept();
@@ -24,10 +29,10 @@ public class Server {
     }
 
     protected void processMessage(NetworkMessage msg, ClientHandler clientHandler) throws IOException {
-        switch (msg.getMessageType()) {
-            case LOGIN_REQUEST, LOGIN_RESPONSE, SIGNUP_REQUEST, SIGNUP_RESPONSE ->
-                    userHandler.handleMessage(msg, clientHandler);
-        };
+        if (!requestHandlers.containsKey(msg.getMessageType()))
+            return;
+        RequestHandler handler = requestHandlers.get(msg.getMessageType());
+        handler.handleRequest(msg, clientHandler);
     }
 
     public static void main(String[] args) throws IOException {

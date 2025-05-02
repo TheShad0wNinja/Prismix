@@ -60,7 +60,7 @@ public class DatabaseManager {
 
 //                System.out.println("Database connection established to: " + dbUrl);
 
-                initializeDatabase();
+//                initializeDatabase();
 
             } catch (ClassNotFoundException e) {
                 System.err.println("SQLite JDBC driver not found.");

@@ -1,4 +1,4 @@
-package com.prismix.client.gui.components;
+package com.prismix.client.gui.components.themed;
 
 import com.prismix.client.gui.themes.Theme;
 import com.prismix.client.gui.themes.ThemeChangeListener;
@@ -25,8 +25,7 @@ public class ThemedTextField extends JTextField implements ThemedComponent, Them
     private static final int PADDING_SIZE = 5; // Inner padding
 
     public ThemedTextField() {
-        super();
-        initComponents();
+        this(null);
     }
 
     public ThemedTextField(String text) {
@@ -59,10 +58,10 @@ public class ThemedTextField extends JTextField implements ThemedComponent, Them
 
     @Override
     public void applyTheme(Theme theme) {
-        this.defaultBorderColor = theme.getForegroundColor().darker(); // Slightly darker than foreground
-        this.focusBorderColor = theme.getAccentColor();
-        this.defaultBackgroundColor = theme.getBackgroundColor().brighter(); // Slightly brighter than background
-        this.defaultForegroundColor = theme.getForegroundColor();
+        this.defaultBackgroundColor = theme.getBackgroundColor();
+        this.defaultForegroundColor = theme.getOnBackgroundColor();
+        this.defaultBorderColor = theme.getOutlineColor();
+        this.focusBorderColor = theme.getPrimaryColor();
 
         // Apply text-related theme properties
         setForeground(defaultForegroundColor);
@@ -82,10 +81,6 @@ public class ThemedTextField extends JTextField implements ThemedComponent, Them
         applyTheme(newTheme);
     }
 
-    /**
-     * Updates the border color of the text field.
-     * @param color The color to set for the border.
-     */
     private void updateBorderColor(Color color) {
         // Create a LineBorder for the border
         Border lineBorder = BorderFactory.createLineBorder(color, BORDER_SIZE);

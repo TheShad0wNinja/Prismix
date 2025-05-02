@@ -5,7 +5,7 @@ import java.util.List;
 
 public class ThemeManager {
 
-    private static Theme currentTheme = new DefaultTheme();
+    private static Theme currentTheme = new MaterialTheme();
     private static final List<ThemeChangeListener> listeners = new ArrayList<>();
 
     public static Theme getCurrentTheme() {

@@ -8,8 +8,8 @@ import java.sql.SQLException;
 public class UserManager {
     private final UserRepository userRepository;
 
-    public UserManager(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public UserManager() {
+        this.userRepository = new UserRepository();
     }
 
     public boolean userExists(String username) throws SQLException {

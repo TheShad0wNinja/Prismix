@@ -69,6 +69,7 @@ public class RoomManager {
     }
 
     public List<Room> getRoomsForUser(int userId) {
+        System.out.println("Getting rooms for user: " + userId);
         try {
             return roomMemberRepository.getUserRooms(userId);
         } catch (SQLException e) {

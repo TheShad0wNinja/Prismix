@@ -1,86 +1,138 @@
 package com.prismix.client.gui.screens;
 
-import com.prismix.client.core.Client;
+import com.prismix.client.core.ApplicationContext;
+import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.core.EventListener;
+import com.prismix.client.gui.layout.BaseLayout;
+import com.prismix.client.gui.layout.ChatLayout;
+import com.prismix.common.model.Room;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
-public class MainFrame extends JFrame {
-    JPanel mainPanel;
-    Client client;
-
-    private static MainFrame instance;
+public class MainFrame extends JFrame implements EventListener {
+    private final Queue<Runnable> pageSwitchQueue;
+    private final JPanel mainPanel;
+    private BaseLayout currentLayout;
+    private boolean isSwitching;
 
     public MainFrame() {
-        super();
-        if (instance == null) {
-            instance = this;
-            client = new Client();
-        }
+        pageSwitchQueue = new LinkedList<>();
+        isSwitching = false;
 
         setTitle("Prismix");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
         setLayout(new BorderLayout());
-
+        
         mainPanel = new JPanel(new BorderLayout());
         getContentPane().add(mainPanel, BorderLayout.CENTER);
+        
+        // Subscribe to events
+        ApplicationContext.getEventBus().subscribe(this);
+        
+        // Show login screen initially
         switchToLoginScreen();
-
+        
         setLocationRelativeTo(null);
         setVisible(true);
     }
-
+    
     private void clearPanel() {
         if (mainPanel != null) {
             mainPanel.removeAll();
         }
     }
-
+    
     private void updateUI() {
         mainPanel.revalidate();
         mainPanel.repaint();
     }
-
+    
     private void switchToLoginScreen() {
-        clearPanel();
-        LoginScreen newPanel = new LoginScreen();
-        mainPanel.add(newPanel, BorderLayout.CENTER);
-        updateUI();
+        queuePageSwitch(() -> {
+            clearPanel();
+            LoginScreen newPanel = new LoginScreen();
+            mainPanel.add(newPanel, BorderLayout.CENTER);
+            updateUI();
+        });
     }
-
-    private void switchToMainScreen() {
-        clearPanel();
-        MainScreen newPanel = MainScreen.getInstance();
-        mainPanel.add(newPanel, BorderLayout.CENTER);
-        updateUI();
-    }
-
-    public static void switchPage(String page) {
-        // Ensure we are on the Event Dispatch Thread
-        if (!SwingUtilities.isEventDispatchThread()) {
-            SwingUtilities.invokeLater(() -> switchPage(page)); // Re-invoke on EDT
-            return;
-        }
-
-        if (instance == null)
-            return;
-
-        System.out.println("Switching to page: " + page);
-
-        SwingUtilities.invokeLater(() -> {
-            switch (page) {
-                case "login":
-                    instance.switchToLoginScreen();
-                    break;
-                case "main":
-                    instance.switchToMainScreen();
-                    break;
-            }
+    
+    private void switchToChatLayout(Room room, ArrayList<Room> rooms) {
+        queuePageSwitch(() -> {
+            clearPanel();
+            currentLayout = new ChatLayout(room, rooms);
+            mainPanel.add(currentLayout, BorderLayout.CENTER);
+            updateUI();
         });
     }
 
-    public static void main(String[] args) {
-        MainFrame frame = new MainFrame();
+    private void queuePageSwitch(Runnable switchAction) {
+        synchronized (pageSwitchQueue) {
+            pageSwitchQueue.add(switchAction);
+            if (!isSwitching)
+                processNextSwitch();
+        }
+    }
+
+    private void processNextSwitch() {
+        System.out.println("Processing next switch");
+        Runnable nextSwitchAction;
+        synchronized (pageSwitchQueue) {
+            nextSwitchAction = pageSwitchQueue.poll();
+            if (nextSwitchAction == null) {
+                isSwitching = false;
+                return;
+            }
+            isSwitching = true;
+        }
+
+        SwingUtilities.invokeLater(() -> {
+            try {
+                nextSwitchAction.run();
+            } finally {
+                processNextSwitch();
+            }
+        });
+    }
+    
+    @Override
+    public void onEvent(ApplicationEvent event) {
+        switch (event.type()) {
+            case USER_LOGGED_IN -> {
+                Room defaultRoom = new Room("General", null);
+                ApplicationContext.getRoomManager().updateRooms();
+                switchToChatLayout(defaultRoom, new ArrayList<>());
+            }
+            case ROOM_SELECTED -> {
+                Room selectedRoom = (Room) event.data();
+                if (selectedRoom == null)
+                    return;
+
+                if (currentLayout instanceof ChatLayout layout) {
+                    queuePageSwitch(() -> {
+                        layout.setRoom(selectedRoom);
+                    });
+                } else {
+                    switchToChatLayout(selectedRoom, ApplicationContext.getRoomManager().getRooms());
+                }
+            }
+            case ROOM_LIST_UPDATED -> {
+                ArrayList<Room> rooms = (ArrayList<Room>) event.data();
+                if (rooms == null)
+                    return;
+
+                if (currentLayout instanceof ChatLayout layout) {
+                    queuePageSwitch(() -> {
+                        layout.setRooms(rooms);
+                    });
+                } else {
+                    Room defaultRoom = new Room("General", null);
+                    switchToChatLayout(defaultRoom, rooms);
+                }
+            }
+        }
     }
 }

@@ -1,25 +1,23 @@
 package com.prismix.client.gui.screens;
 
-import com.prismix.client.core.AuthManager;
-import com.prismix.client.core.ConnectionManager;
-import com.prismix.client.gui.components.ThemedButton;
-import com.prismix.client.gui.components.ThemedLabel;
-import com.prismix.client.gui.components.ThemedPanel;
-import com.prismix.client.gui.components.ThemedTextField;
-import com.prismix.common.model.network.LoginRequest;
-import com.prismix.common.model.network.SignupRequest;
+import com.prismix.client.core.ApplicationContext;
+import com.prismix.client.gui.components.themed.ThemedButton;
+import com.prismix.client.gui.components.themed.ThemedLabel;
+import com.prismix.client.gui.components.themed.ThemedPanel;
+import com.prismix.client.gui.components.themed.ThemedTextField;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 
 public class LoginScreen extends ThemedPanel {
+//    private final ApplicationContext context;
     private JButton loginButton;
     private JButton signupButton;
 
     public LoginScreen() {
+//        this.context = context;
         setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
 
@@ -30,7 +28,7 @@ public class LoginScreen extends ThemedPanel {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(10, 15, 10, 15);
 
-        JLabel loginLabel = new ThemedLabel("Login", true);
+        JLabel loginLabel = new ThemedLabel("Login", ThemedLabel.Size.TITLE);
         add(loginLabel, c);
 
         c.gridx = 0;
@@ -41,6 +39,7 @@ public class LoginScreen extends ThemedPanel {
         c.insets = new Insets(10, 15, 10, 15);
 
         JTextField usernameField = new ThemedTextField();
+        usernameField.setText("khalid");
         add(usernameField, c);
 
         c.gridx = 0;
@@ -63,20 +62,20 @@ public class LoginScreen extends ThemedPanel {
         add(signupBtn, c);
 
         loginButton.addActionListener(new ActionListener() {
-
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> AuthManager.getInstance().login(usernameField.getText())).start();
-                System.out.println(usernameField.getText());
+                new Thread(() -> ApplicationContext.getAuthManager().login(usernameField.getText())).start();
             }
         });
 
         signupBtn.addActionListener(new ActionListener() {
-
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> AuthManager.getInstance().signup(usernameField.getText(), usernameField.getText(), null)).start();
-                System.out.println(usernameField.getText());
+                new Thread(() -> ApplicationContext.getAuthManager().signup(
+                    usernameField.getText(), 
+                    usernameField.getText(), 
+                    null
+                )).start();
             }
         });
     }

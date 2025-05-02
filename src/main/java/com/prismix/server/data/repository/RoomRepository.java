@@ -39,6 +39,7 @@ public class RoomRepository {
     }
 
     public Room getRoomById(int roomId) throws SQLException {
+        System.out.println("Room Id: " + roomId);
         String sql = "SELECT * FROM room WHERE id = ?";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -47,14 +48,13 @@ public class RoomRepository {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                int id = rs.getInt(1);
+                int id = rs.getInt("id");
                 String name = rs.getString("name");
                 byte[] avatar = rs.getBytes("avatar");
                 return new Room(id, name, avatar);
             }
         } catch (SQLException e) {
             System.err.println("Error fetching room by ID: " + e.getMessage());
-            throw e;
         }
         return null;
     }

@@ -5,14 +5,19 @@ import com.prismix.common.model.network.*;
 import com.prismix.server.data.manager.UserManager;
 import com.prismix.server.data.repository.UserRepository;
 
-public class UserHandler {
+import java.util.HashMap;
+
+public class AuthHandler implements RequestHandler{
     private final UserManager userManager;
 
-    public UserHandler(UserRepository userRepository) {
-        userManager = new UserManager(userRepository);
+    public AuthHandler(HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
+        userManager = new UserManager();
+        requestHandlers.put(NetworkMessage.MessageType.LOGIN_REQUEST, this);
+        requestHandlers.put(NetworkMessage.MessageType.SIGNUP_REQUEST, this);
     }
 
-    public void handleMessage(NetworkMessage message, ClientHandler clientHandler) {
+    @Override
+    public void handleRequest(NetworkMessage message, ClientHandler clientHandler) {
         switch (message.getMessageType()) {
             case SIGNUP_REQUEST -> {
                 SignupRequest msg = (SignupRequest) message;
