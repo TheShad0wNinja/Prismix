@@ -13,6 +13,16 @@ public final class Message implements Serializable {
     private boolean direct;
     private Timestamp timestamp;
 
+    public Message(int id, int sender_id, int receiver_id, int room_id, String content, boolean direct) {
+        this.id = id;
+        this.senderId = sender_id;
+        this.receiverId = receiver_id;
+        this.roomId = room_id;
+        this.content = content;
+        this.direct = direct;
+        this.timestamp = null;
+    }
+
     public Message(int id, int sender_id, int receiver_id, int room_id, String content, boolean direct,
                    Timestamp timestamp) {
         this.id = id;

@@ -6,36 +6,44 @@ import com.prismix.client.core.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
+import com.prismix.client.gui.components.themed.ThemedTextField;
 import com.prismix.client.utils.AvatarDisplayHelper;
+import com.prismix.common.model.Message;
 import com.prismix.common.model.Room;
 import com.prismix.common.model.User;
+import com.prismix.common.model.network.NetworkMessage;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RoomMainPanel extends ThemedPanel implements EventListener {
     private final Room room;
     private final JPanel usersPanel;
+    private final ChatPanel chatPanel;
     private final AtomicBoolean isUpdating = new AtomicBoolean(false);
     private static final int USERS_PANEL_WIDTH = 200;
     private static final int MAX_USERNAME_LENGTH = 15;
     private static final int AVATAR_SIZE = 30;
-    
+    private static final AtomicLong messageSerial = new AtomicLong(0);
+
     public RoomMainPanel(Room room) {
         super(Variant.BACKGROUND, true);
         this.room = room;
         setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
 
-        JPanel chatsPanel = new ChatPanel();
+        chatPanel = new ChatPanel();
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1.0;
         c.weighty = 1.0;
         c.fill = GridBagConstraints.BOTH;
-        add(chatsPanel, c);
+        add(chatPanel, c);
 
         usersPanel = new ThemedPanel(Variant.BACKGROUND);
         usersPanel.setLayout(new BoxLayout(usersPanel, BoxLayout.Y_AXIS));
@@ -48,16 +56,67 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         scrollPane.setPreferredSize(new Dimension(USERS_PANEL_WIDTH, 0));
         scrollPane.setMinimumSize(new Dimension(USERS_PANEL_WIDTH, 0));
         scrollPane.setMaximumSize(new Dimension(USERS_PANEL_WIDTH, Integer.MAX_VALUE));
-        
+
         c.gridx = 1;
         c.gridy = 0;
         c.weightx = 0.0;
         c.fill = GridBagConstraints.VERTICAL;
         add(scrollPane, c);
 
+        // Add message input panel at the bottom
+        JPanel messageInputPanel = new ThemedPanel(Variant.PRIMARY);
+        messageInputPanel.setLayout(new BorderLayout(5, 5));
+        messageInputPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+
+        ThemedTextField messageInput = new ThemedTextField("");
+        messageInput.setPreferredSize(new Dimension(0, 30));
+        messageInputPanel.add(messageInput, BorderLayout.CENTER);
+
+        JButton sendButton = new JButton("Send");
+        sendButton.setPreferredSize(new Dimension(80, 30));
+        sendButton.addActionListener(e -> sendMessage(messageInput));
+        messageInputPanel.add(sendButton, BorderLayout.EAST);
+
+        // Add message input panel at the bottom
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridwidth = 2;
+        c.weightx = 1.0;
+        c.weighty = 0.0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        add(messageInputPanel, c);
+
         ApplicationContext.getEventBus().subscribe(this);
 
         SwingUtilities.invokeLater(() -> ApplicationContext.getRoomHandler().updateRoomUsers());
+    }
+
+    private void sendMessage(ThemedTextField messageInput) {
+        String content = messageInput.getText().trim();
+        if (content.isEmpty()) {
+            return;
+        }
+
+        // Create message with unique serial number
+        long messageId = messageSerial.incrementAndGet();
+        Message message = new Message(
+                (int) messageId,
+                ApplicationContext.getAuthHandler().getUser().getId(),
+                -1,
+                room.getId(),
+                content,
+                false
+        );
+
+        try {
+            // Send the message using the client's message handler
+            ApplicationContext.getMessageHandler().sendTextMessage(message);
+
+            // Clear input
+            messageInput.setText("");
+        } catch (Exception e) {
+            System.err.println("Error sending message: " + e.getMessage());
+        }
     }
 
     public void updateUserList(List<User> users) {
@@ -81,7 +140,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                     if (username.length() > MAX_USERNAME_LENGTH) {
                         username = username.substring(0, MAX_USERNAME_LENGTH - 3) + "...";
                     }
-                    
+
                     ThemedLabel usernameLabel = new ThemedLabel(username, ThemedLabel.Size.SMALLER, ThemedLabel.Variant.BACKGROUND);
                     usernameLabel.setToolTipText(user.getDisplayName());
                     itemPanel.add(usernameLabel);

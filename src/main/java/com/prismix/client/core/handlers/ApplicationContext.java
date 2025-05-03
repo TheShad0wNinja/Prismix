@@ -22,7 +22,7 @@ public class ApplicationContext {
         this.eventBus = new EventBus();
         this.authHandler = new AuthHandler(eventBus, responseHandlers);
         this.roomHandler = new RoomHandler(eventBus, authHandler, responseHandlers);
-        this.messageHandler = new MessageHandler(eventBus);
+        this.messageHandler = new MessageHandler(eventBus, authHandler, responseHandlers);
     }
 
     private static ApplicationContext getInstance() {
@@ -55,6 +55,4 @@ public class ApplicationContext {
     public static RoomHandler getRoomHandler() {
         return getInstance().roomHandler;
     }
-
-//    public ThemeManager getThemeManager() { return themeManager; }
 }

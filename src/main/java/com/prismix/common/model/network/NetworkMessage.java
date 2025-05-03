@@ -12,7 +12,12 @@ public interface NetworkMessage extends Serializable {
         GET_ROOMS_REQUEST, GET_ROOMS_RESPONSE, // Get List of users rooms
         GET_ROOM_USERS_REQUEST, GET_ROOM_USERS_RESPONSE, // GEt list of users in the room
 
-        SEND_TEXT_MESSAGE,
+        SEND_TEXT_MESSAGE_REQUEST, SEND_TEXT_MESSAGE_RESPONSE,
+        GET_UNREAD_MESSAGE_REQUEST, GET_UNREAD_MESSAGE_RESPONSE,
+                                    RECEIVE_TEXT_MESSAGE_REQUEST,
+
+
+
 //        SEND_FILE_MESSAGE,
 //        CREATE_ROOM_REQUEST,
 //        JOIN_ROOM_REQUEST,

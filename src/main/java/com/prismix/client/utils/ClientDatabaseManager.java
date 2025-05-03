@@ -29,6 +29,7 @@ public class ClientDatabaseManager extends DatabaseManager {
             String messageTableSql = """
                     CREATE TABLE IF NOT EXISTS message (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        owner_id INTEGER NOT NULL,
                         sender_id INTEGER NOT NULL,
                         direct INTEGER NOT NULL CHECK ( direct IN (0, 1) ),
                         receiver_id INTEGER,

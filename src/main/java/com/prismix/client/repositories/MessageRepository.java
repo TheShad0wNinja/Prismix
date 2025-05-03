@@ -1,7 +1,9 @@
 package com.prismix.client.repositories;
 
+import com.prismix.client.core.handlers.ApplicationContext;
 import com.prismix.client.utils.ClientDatabaseManager;
 import com.prismix.common.model.Message;
+import com.prismix.common.model.User;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -10,9 +12,9 @@ public class MessageRepository {
     public static void addMessage(Message message) {
         String sql;
         if (message.isDirect()) {
-            sql = "INSERT INTO message (sender_id, receiver_id, content, direct) VALUES (?, ?, ?, ?)";
+            sql = "INSERT INTO message (sender_id, receiver_id, content, direct, owner_id) VALUES (?, ?, ?, ?, ?)";
         } else {
-            sql = "INSERT INTO message (sender_id, room_id, content, direct) VALUES (?, ?, ?, ?)";
+            sql = "INSERT INTO message (sender_id, room_id, content, direct, owner_id) VALUES (?, ?, ?, ?, ?)";
         }
 
         try (Connection conn = ClientDatabaseManager.getConnection();
@@ -26,6 +28,7 @@ public class MessageRepository {
             }
             stmt.setString(3, message.getContent());
             stmt.setBoolean(4, message.isDirect());
+            stmt.setInt(5, ApplicationContext.getAuthHandler().getUser().getId());
 
             stmt.executeUpdate();
             ResultSet rs = stmt.getGeneratedKeys();
@@ -40,10 +43,11 @@ public class MessageRepository {
 
     public static ArrayList<Message> getMessagesByRoomId(int roomId) {
         ArrayList<Message> messages = new ArrayList<>();
-        String sql = "SELECT * FROM message WHERE room_id = ?";
+        String sql = "SELECT * FROM message WHERE room_id = ? AND owner_id = ? ORDER BY timestamp ASC";
         try(Connection conn = ClientDatabaseManager.getConnection();
             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, roomId);
+            stmt.setInt(2, ApplicationContext.getAuthHandler().getUser().getId());
 
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {

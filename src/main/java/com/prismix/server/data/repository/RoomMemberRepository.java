@@ -13,7 +13,7 @@ import java.util.List;
 
 public class RoomMemberRepository {
 
-    public RoomMemberRepository() {}
+    private RoomMemberRepository() {}
 
     public static void addRoomMember(int roomId, int userId) throws SQLException {
         String sql = "INSERT INTO room_member (room_id, user_id) VALUES (?, ?)";

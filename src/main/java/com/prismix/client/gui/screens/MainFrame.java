@@ -128,7 +128,7 @@ public class MainFrame extends JFrame implements EventListener {
                         layout.setRooms(rooms);
                     });
                 } else {
-                    Room defaultRoom = new Room("General", null);
+                    Room defaultRoom = new Room(-1, "General", null);
                     switchToChatLayout(defaultRoom, rooms);
                 }
             }

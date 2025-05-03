@@ -32,6 +32,10 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    public boolean isConnected() {
+        return socket.isConnected() && !socket.isClosed();
+    }
+
     private void initSession() throws IOException {
         out = new ObjectOutputStream(socket.getOutputStream());
         in = new ObjectInputStream(socket.getInputStream());
@@ -48,6 +52,14 @@ public class ClientHandler implements Runnable {
                 System.out.println("Error: " + e.getMessage());
                 break;
             }
+        }
+        System.out.println("Session closed");
+        try {
+            out.close();
+            in.close();
+            socket.close();
+        } catch (IOException e) {
+            System.out.println("Error closing socket: " + e.getMessage());
         }
     }
 

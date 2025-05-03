@@ -27,7 +27,6 @@ public class ServerDatabaseManager extends DatabaseManager {
         try (Connection conn = getDriverConnection();
              Statement stmt = conn.createStatement()) {
 
-            // Example: Create users table
             String createUserTableSQL = """
                     CREATE TABLE IF NOT EXISTS user (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,6 +72,18 @@ public class ServerDatabaseManager extends DatabaseManager {
                     );
                     """;
             stmt.execute(createMessageTableSQL);
+
+            String createUserUnreadMessageTable = """
+                    CREATE TABLE IF NOT EXISTS user_unread_message (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        message_id INTEGER NOT NULL,
+                        timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES user(id),
+                        FOREIGN KEY (message_id) REFERENCES message(id)
+                    );
+                    """;
+            stmt.execute(createUserUnreadMessageTable);
 
         } catch (SQLException e) {
             System.out.println(e.getMessage());

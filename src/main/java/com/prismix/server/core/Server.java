@@ -9,21 +9,24 @@ import java.net.Socket;
 import java.util.HashMap;
 
 public class Server {
-    private final int PORT = 8008;
+    private final int PORT = 6969;
     private final AuthHandler userHandler;
     private final HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers;
 
     public Server() throws IOException {
         requestHandlers = new HashMap<>();
-        new AuthHandler(requestHandlers);
+        this.userHandler = new AuthHandler(requestHandlers);
         new RoomHandler(requestHandlers);
+        new MessageHandler(userHandler, requestHandlers);
 
         ServerSocket ss = new ServerSocket(PORT);
-        while (true) {
+        while (!ss.isClosed()) {
             Socket socket = ss.accept();
             System.out.println("Accepted connection from " + socket.getRemoteSocketAddress());
             new Thread(new ClientHandler(socket, this)).start();
         }
+
+        ss.close();
     }
 
     protected void processMessage(NetworkMessage msg, ClientHandler clientHandler) throws IOException {
