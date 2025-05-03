@@ -20,13 +20,15 @@ public class ClientHandler implements Runnable {
         this.server = server;
     }
 
-    public void sendMessage(NetworkMessage msg) {
+    public boolean sendMessage(NetworkMessage msg) {
         System.out.println("Sending message: " + msg);
         try {
             out.writeObject(msg);
             out.flush();
+            return true;
         } catch (IOException e) {
             System.out.println("Error sending message: " + e.getMessage());
+            return false;
         }
     }
 

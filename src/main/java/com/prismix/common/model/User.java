@@ -72,9 +72,13 @@ public class User implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return Objects.equals(id, user.id);
+        if (o instanceof User u) {
+            return id == u.id;
+        } else if (o instanceof Integer i) {
+            return id == i;
+        } else {
+            return false;
+        }
     }
 
     @Override

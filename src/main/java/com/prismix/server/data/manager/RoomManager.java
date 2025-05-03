@@ -9,24 +9,18 @@ import java.util.List;
 
 public class RoomManager {
 
-    private final RoomRepository roomRepository;
-    private final RoomMemberRepository roomMemberRepository;
+    private RoomManager() {}
 
-    public RoomManager() {
-        this.roomRepository = new RoomRepository();
-        this.roomMemberRepository = new RoomMemberRepository();
-    }
-
-    public Room createRoom(String roomName, byte[] avatarData) {
+    public static Room createRoom(String roomName, byte[] avatarData) {
         try {
             // Check if room name already exists
-            if (roomRepository.getRoomByName(roomName) != null) {
+            if (RoomRepository.getRoomByName(roomName) != null) {
                 System.out.println("Room creation failed: Room name already exists.");
                 return null;
             }
 
             Room newRoom = new Room(roomName, avatarData);
-            return roomRepository.createRoom(newRoom);
+            return RoomRepository.createRoom(newRoom);
 
         } catch (SQLException e) {
             System.err.println("Error creating room: " + e.getMessage());
@@ -34,14 +28,14 @@ public class RoomManager {
         }
     }
 
-    public boolean joinRoom(int userId, int roomId) {
+    public static boolean joinRoom(int userId, int roomId) {
         try {
-            if (roomRepository.getRoomById(roomId) == null) {
+            if (RoomRepository.getRoomById(roomId) == null) {
                 System.out.println("Joining room failed: Room with ID " + roomId + " does not exist.");
                 return false;
             }
 
-            roomMemberRepository.addRoomMember(roomId, userId);
+            RoomMemberRepository.addRoomMember(roomId, userId);
             return true;
         } catch (SQLException e) {
             System.err.println("Error joining room: " + e.getMessage());
@@ -49,9 +43,9 @@ public class RoomManager {
         }
     }
 
-    public boolean leaveRoom(int userId, int roomId) {
+    public static boolean leaveRoom(int userId, int roomId) {
         try {
-            roomMemberRepository.removeRoomMember(roomId, userId);
+            RoomMemberRepository.removeRoomMember(roomId, userId);
             return true;
         } catch (SQLException e) {
             System.err.println("Error leaving room: " + e.getMessage());
@@ -59,21 +53,20 @@ public class RoomManager {
         }
     }
 
-    public List<User> getMembersOfRoom(int roomId) {
+    public static List<User> getMembersOfRoom(int roomId) {
         try {
-            return roomMemberRepository.getRoomMembers(roomId);
+            return RoomMemberRepository.getRoomMembers(roomId);
         } catch (SQLException e) {
             System.err.println("Error getting room members: " + e.getMessage());
             return null;
         }
     }
 
-    public List<Room> getRoomsForUser(int userId) {
-        System.out.println("Getting rooms for user: " + userId);
+    public static List<Room> getRoomsForUser(int userId) {
         try {
-            return roomMemberRepository.getUserRooms(userId);
+            return RoomMemberRepository.getUserRooms(userId);
         } catch (SQLException e) {
-            System.err.println("Error getting user's rooms: " + e.getMessage());
+            System.err.println("Error getting users's rooms: " + e.getMessage());
             return null;
         }
     }

@@ -1,6 +1,6 @@
 package com.prismix.client.gui.screens;
 
-import com.prismix.client.core.ApplicationContext;
+import com.prismix.client.core.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedButton;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
@@ -64,14 +64,14 @@ public class LoginScreen extends ThemedPanel {
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> ApplicationContext.getAuthManager().login(usernameField.getText())).start();
+                new Thread(() -> ApplicationContext.getAuthHandler().login(usernameField.getText())).start();
             }
         });
 
         signupBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> ApplicationContext.getAuthManager().signup(
+                new Thread(() -> ApplicationContext.getAuthHandler().signup(
                     usernameField.getText(), 
                     usernameField.getText(), 
                     null

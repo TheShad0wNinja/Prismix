@@ -2,7 +2,7 @@ package com.prismix.server.data.repository;
 
 import com.prismix.common.model.Room;
 import com.prismix.common.model.User;
-import com.prismix.server.utils.DatabaseManager;
+import com.prismix.server.utils.ServerDatabaseManager;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,17 +13,11 @@ import java.util.List;
 
 public class RoomMemberRepository {
 
-    private final UserRepository userRepository;
-    private final RoomRepository roomRepository;
+    public RoomMemberRepository() {}
 
-    public RoomMemberRepository() {
-        this.userRepository = new UserRepository();
-        this.roomRepository = new RoomRepository(); // Initialize RoomRepository
-    }
-
-    public void addRoomMember(int roomId, int userId) throws SQLException {
+    public static void addRoomMember(int roomId, int userId) throws SQLException {
         String sql = "INSERT INTO room_member (room_id, user_id) VALUES (?, ?)";
-        try (Connection conn = DatabaseManager.getConnection();
+        try (Connection conn = ServerDatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, roomId);
@@ -33,7 +27,7 @@ public class RoomMemberRepository {
             System.out.println("User " + userId + " added to room " + roomId);
 
         } catch (SQLException e) {
-            // Handle the case where the user is already a member (Integrity constraint violation)
+            // Handle the case where the users is already a member (Integrity constraint violation)
             if (e.getSQLState() != null && e.getSQLState().startsWith("23")) {
                 System.out.println("User " + userId + " is already a member of room " + roomId);
             } else {
@@ -43,9 +37,9 @@ public class RoomMemberRepository {
         }
     }
 
-    public void removeRoomMember(int roomId, int userId) throws SQLException {
+    public static void removeRoomMember(int roomId, int userId) throws SQLException {
         String sql = "DELETE FROM room_member WHERE room_id = ? AND user_id = ?";
-        try (Connection conn = DatabaseManager.getConnection();
+        try (Connection conn = ServerDatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, roomId);
@@ -60,36 +54,35 @@ public class RoomMemberRepository {
         }
     }
 
-    public List<User> getRoomMembers(int roomId) throws SQLException {
+    public static List<User> getRoomMembers(int roomId) throws SQLException {
         List<User> members = new ArrayList<>();
-        String sql = "SELECT user_id FROM room_member WHERE room_id = ?";
-        try (Connection conn = DatabaseManager.getConnection();
+        String sql = "SELECT u.id, u.username, u.display_name, u.avatar FROM room_member rm JOIN main.user u on u.id = rm.user_id WHERE room_id = ?";
+        try (Connection conn = ServerDatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, roomId);
             ResultSet rs = pstmt.executeQuery();
 
+            System.out.println("Room " + roomId + " members found");
             while (rs.next()) {
-                int userId = rs.getInt("user_id");
-
-                User user = userRepository.getUserById(userId);
-                if (user != null) {
-                    members.add(user);
-                }
+                int userId = rs.getInt("id");
+                String username = rs.getString("username");
+                String displayName = rs.getString("display_name");
+                byte[] avatar = rs.getBytes("avatar");
+                System.out.println("User " + userId + " member: " + username + " displayName: " + displayName + " avatar: " + avatar);
+                members.add(new User(userId, username, displayName, avatar));
             }
         } catch (SQLException e) {
             System.err.println("Error fetching room members: " + e.getMessage());
-            throw e;
         }
         return members;
     }
 
-    public List<Room> getUserRooms(int userId) throws SQLException {
+    public static List<Room> getUserRooms(int userId) throws SQLException {
         List<Room> rooms = new ArrayList<>();
-//        String sql = "SELECT room_id FROM room_member WHERE user_id = ?";
         String sql = "SELECT r.id, r.name, r.avatar FROM room_member rm JOIN room r ON rm.room_id = r.id WHERE rm.user_id = ?";
 
-        try (Connection conn = DatabaseManager.getConnection();
+        try (Connection conn = ServerDatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
@@ -104,14 +97,14 @@ public class RoomMemberRepository {
                 rooms.add(room);
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching user's rooms: " + e.getMessage());
+            System.err.println("Error fetching users's rooms: " + e.getMessage());
         }
         return rooms;
     }
 
-    public boolean isUserInRoom(int userId, int roomId) throws SQLException {
+    public static boolean isUserInRoom(int userId, int roomId) throws SQLException {
         String sql = "SELECT COUNT(*) FROM room_member WHERE user_id = ? AND room_id = ?";
-        try (Connection conn = DatabaseManager.getConnection();
+        try (Connection conn = ServerDatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
@@ -122,7 +115,7 @@ public class RoomMemberRepository {
                 return rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
-            System.err.println("Error checking if user is in room: " + e.getMessage());
+            System.err.println("Error checking if users is in room: " + e.getMessage());
             throw e;
         }
         return false;

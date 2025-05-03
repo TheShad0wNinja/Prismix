@@ -1,11 +1,12 @@
 package com.prismix.client.gui.screens;
 
-import com.prismix.client.core.ApplicationContext;
+import com.prismix.client.core.handlers.ApplicationContext;
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
 import com.prismix.client.gui.layout.BaseLayout;
 import com.prismix.client.gui.layout.ChatLayout;
 import com.prismix.common.model.Room;
+import com.prismix.common.model.User;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,6 +26,7 @@ public class MainFrame extends JFrame implements EventListener {
 
         setTitle("Prismix");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1000, 800);
         setLayout(new BorderLayout());
         
         mainPanel = new JPanel(new BorderLayout());
@@ -78,7 +80,6 @@ public class MainFrame extends JFrame implements EventListener {
     }
 
     private void processNextSwitch() {
-        System.out.println("Processing next switch");
         Runnable nextSwitchAction;
         synchronized (pageSwitchQueue) {
             nextSwitchAction = pageSwitchQueue.poll();
@@ -102,8 +103,8 @@ public class MainFrame extends JFrame implements EventListener {
     public void onEvent(ApplicationEvent event) {
         switch (event.type()) {
             case USER_LOGGED_IN -> {
-                Room defaultRoom = new Room("General", null);
-                ApplicationContext.getRoomManager().updateRooms();
+                Room defaultRoom = new Room(-1, "General", null);
+                ApplicationContext.getRoomHandler().updateRooms();
                 switchToChatLayout(defaultRoom, new ArrayList<>());
             }
             case ROOM_SELECTED -> {
@@ -116,7 +117,7 @@ public class MainFrame extends JFrame implements EventListener {
                         layout.setRoom(selectedRoom);
                     });
                 } else {
-                    switchToChatLayout(selectedRoom, ApplicationContext.getRoomManager().getRooms());
+                    switchToChatLayout(selectedRoom, ApplicationContext.getRoomHandler().getRooms());
                 }
             }
             case ROOM_LIST_UPDATED -> {
@@ -133,6 +134,17 @@ public class MainFrame extends JFrame implements EventListener {
                     switchToChatLayout(defaultRoom, rooms);
                 }
             }
+//            case ROOM_USERS_UPDATED -> {
+//                ArrayList<User> users = (ArrayList<User>) event.data();
+//                if (users == null)
+//                    return;
+//
+//                if (currentLayout instanceof ChatLayout layout) {
+//                    queuePageSwitch(() -> {
+//                        layout.setUsers(users);
+//                    });
+//                }
+//            }
         }
     }
 }

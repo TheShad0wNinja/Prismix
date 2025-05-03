@@ -1,12 +1,9 @@
-package com.prismix.client.core;
+package com.prismix.client.utils;
 
-import com.prismix.common.model.network.LoginResponse;
 import com.prismix.common.model.network.NetworkMessage;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class ConnectionManager {
     private ObjectOutputStream out;

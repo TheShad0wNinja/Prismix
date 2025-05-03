@@ -6,15 +6,12 @@ import com.prismix.server.data.repository.UserRepository;
 import java.sql.SQLException;
 
 public class UserManager {
-    private final UserRepository userRepository;
 
-    public UserManager() {
-        this.userRepository = new UserRepository();
-    }
+    private UserManager() { }
 
-    public boolean userExists(String username) throws SQLException {
+    public static boolean userExists(String username) throws SQLException {
         try {
-            User user = userRepository.getUserByUsername(username);
+            User user = UserRepository.getUserByUsername(username);
             return user != null;
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -22,18 +19,18 @@ public class UserManager {
         }
     }
 
-    public User login(String username) {
+    public static User login(String username) {
         try {
-            return userRepository.getUserByUsername(username);
+            return UserRepository.getUserByUsername(username);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
             return null;
         }
     }
 
-    public User registerUser(String username, String displayName, byte[] avatar) {
+    public static User registerUser(String username, String displayName, byte[] avatar) {
         try {
-            if (userRepository.getUserByUsername(username) != null) {
+            if (UserRepository.getUserByUsername(username) != null) {
                 System.out.println("User already exists");
                 return null;
             }
@@ -41,7 +38,7 @@ public class UserManager {
             User user = new User(username, displayName, avatar);
 
             System.out.println("User created");
-            return userRepository.createUser(user);
+            return UserRepository.createUser(user);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
             return null;

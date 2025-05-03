@@ -1,17 +1,22 @@
-package com.prismix.client.core;
+package com.prismix.client.core.handlers;
 
 import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.utils.ConnectionManager;
+import com.prismix.client.core.EventBus;
 import com.prismix.common.model.User;
 import com.prismix.common.model.network.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 
-public class AuthManager {
+public class AuthHandler implements ResponseHandler {
     private final EventBus eventBus;
     private User user;
 
-    public AuthManager(EventBus eventBus) {
+    public AuthHandler(EventBus eventBus, HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandlers) {
         this.eventBus = eventBus;
+        responseHandlers.put(NetworkMessage.MessageType.LOGIN_RESPONSE, this);
+        responseHandlers.put(NetworkMessage.MessageType.SIGNUP_RESPONSE, this);
     }
 
     public User getUser() {
@@ -36,7 +41,7 @@ public class AuthManager {
         }
     }
 
-    public void handleMessage(NetworkMessage msg) {
+    public void handleResponse(NetworkMessage msg) {
         if (msg.getMessageType() == NetworkMessage.MessageType.LOGIN_RESPONSE) {
             LoginResponse res = (LoginResponse) msg;
             if (res.status()) {

@@ -1,55 +1,70 @@
 package com.prismix.client.gui.components;
 
+import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.core.EventListener;
+import com.prismix.client.core.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedPanel;
-import com.prismix.common.model.Room;
+import com.prismix.common.model.Message;
+import com.prismix.common.model.User;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class ChatPanel extends ThemedPanel {
-    private final Room room;
-//    private final JTextArea messageArea;
-//    private final JTextField inputField;
-    
-    public ChatPanel(Room room) {
-//        super(Variant.OUTLINE, true);
-        this.room = room;
-        setLayout(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
+public class ChatPanel extends ThemedPanel implements EventListener {
+    JScrollPane chatScrollPane;
+    JPanel mainPanel;
+    public ChatPanel() {
+        super(Variant.PRIMARY);
+        setLayout(new GridLayout(1, 1));
 
-        c.gridx = 0;
-        c.gridy = 0;
-        c.weightx = 1;
-        c.weighty = 1;
-        c.fill = GridBagConstraints.BOTH;
-//        c.insets = new Insets(2, 2, 2, 2);
+        mainPanel = new ThemedPanel(Variant.PRIMARY);
+        mainPanel.setLayout(new GridBagLayout());
 
-        JPanel panel = new ThemedPanel(Variant.SURFACE_ALT, true);
-//        panel.setBackground(Color.ORANGE);
-        JScrollPane scrollPane = new JScrollPane(panel);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        chatScrollPane = new JScrollPane(mainPanel);
+        chatScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        chatScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
-        add(scrollPane, c);
+        add(chatScrollPane);
 
-        // Message display area
-//        messageArea = new JTextArea();
-//        messageArea.setEditable(false);
-//        messageArea.setLineWrap(true);
-//        messageArea.setWrapStyleWord(true);
-//        JScrollPane scrollPane = new JScrollPane(messageArea);
-//        add(scrollPane, BorderLayout.CENTER);
-//
-//        // Input area
-//        JPanel inputPanel = new ThemedPanel();
-//        inputPanel.setLayout(new BorderLayout());
-//
-//        inputField = new JTextField();
-//        inputPanel.add(inputField, BorderLayout.CENTER);
-//
-//        JButton sendButton = new JButton("Send");
-//        inputPanel.add(sendButton, BorderLayout.EAST);
-//
-//        add(inputPanel, BorderLayout.SOUTH);
+        ApplicationContext.getEventBus().subscribe(this);
+
     }
-} 
+
+    private void appendMessage(Message msg) {
+        User user =  ApplicationContext.getRoomHandler().getRoomUser(msg.getSenderId());
+        JPanel messageEntry = new MessageEntry(user, msg);
+        GridBagConstraints c = new GridBagConstraints();
+        c.weightx = 1.0;
+        c.gridx = 0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+
+        mainPanel.add(messageEntry, c);
+        JPanel messageEntry1 = new MessageEntry(user, msg);
+
+        mainPanel.add(messageEntry1, c);
+
+        JPanel messageEntry2 = new MessageEntry(user, msg);
+        mainPanel.add(messageEntry2, c);
+
+        c.weighty = 1.0;
+        c.fill = GridBagConstraints.BOTH;
+        mainPanel.add(Box.createVerticalGlue(), c);
+
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
+
+    @Override
+    public void onEvent(ApplicationEvent event) {
+        if (event.type() == ApplicationEvent.Type.ROOM_MESSAGE) {
+            Message msg = (Message) event.data();
+            appendMessage(msg);
+        }
+    }
+
+    @Override
+    public void removeNotify() {
+        super.removeNotify();
+        ApplicationContext.getEventBus().unsubscribe(this);
+    }
+}

@@ -1,5 +1,6 @@
 package com.prismix.client.core;
 
+import com.prismix.client.utils.ConnectionManager;
 import com.prismix.common.model.network.NetworkMessage;
 
 import java.io.IOException;

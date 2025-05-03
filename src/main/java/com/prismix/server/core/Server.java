@@ -1,9 +1,7 @@
 package com.prismix.server.core;
 
 import com.prismix.common.model.network.NetworkMessage;
-import com.prismix.server.data.manager.RoomManager;
-import com.prismix.server.data.manager.UserManager;
-import com.prismix.server.data.repository.UserRepository;
+import com.prismix.server.utils.ServerDatabaseManager;
 
 import java.io.IOException;
 import java.net.ServerSocket;
