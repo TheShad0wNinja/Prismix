@@ -32,10 +32,8 @@ public class MainFrame extends JFrame implements EventListener {
         mainPanel = new JPanel(new BorderLayout());
         getContentPane().add(mainPanel, BorderLayout.CENTER);
         
-        // Subscribe to events
         ApplicationContext.getEventBus().subscribe(this);
         
-        // Show login screen initially
         switchToLoginScreen();
         
         setLocationRelativeTo(null);
@@ -134,17 +132,6 @@ public class MainFrame extends JFrame implements EventListener {
                     switchToChatLayout(defaultRoom, rooms);
                 }
             }
-//            case ROOM_USERS_UPDATED -> {
-//                ArrayList<User> users = (ArrayList<User>) event.data();
-//                if (users == null)
-//                    return;
-//
-//                if (currentLayout instanceof ChatLayout layout) {
-//                    queuePageSwitch(() -> {
-//                        layout.setUsers(users);
-//                    });
-//                }
-//            }
         }
     }
 }

@@ -34,6 +34,7 @@ public class ChatSidebar extends ThemedPanel {
         roomsPanel.setLayout(new BoxLayout(roomsPanel, BoxLayout.Y_AXIS));
 
         scrollPane = new JScrollPane(roomsPanel);
+        scrollPane.setBorder(null);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 

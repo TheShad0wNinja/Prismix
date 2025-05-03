@@ -3,6 +3,7 @@ package com.prismix.client.gui.components;
 import com.prismix.client.core.EventListener;
 import com.prismix.client.core.handlers.ApplicationContext;
 import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.themes.Theme;
@@ -19,6 +20,7 @@ import java.awt.event.MouseEvent;
 public class RoomEntryPanel extends ThemedPanel implements EventListener {
 
     private static final int VERTICAL_SPACING = 4;
+    private static final int AVATAR_SIZE = 40;
     private final Room room;
     private boolean isSelected;
     private JLabel roomAvatarLabel;
@@ -87,11 +89,10 @@ public class RoomEntryPanel extends ThemedPanel implements EventListener {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
 
-        roomAvatarLabel = new ThemedLabel();
+//        roomAvatarLabel = new ThemedIcon(room.getAvatar(), AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.ROUNDED);
         roomNameLabel = new ThemedLabel();
 
-        add(roomAvatarLabel);
-        add(roomNameLabel);
+//        add(roomAvatarLabel);
 
         setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -99,14 +100,18 @@ public class RoomEntryPanel extends ThemedPanel implements EventListener {
 
     private void displayRoomInfo() {
         if (room != null) {
-            ImageIcon avatarIcon = AvatarDisplayHelper.getAvatarImageIcon(room.getAvatar(), 40, 40);
-            roomAvatarLabel.setIcon(avatarIcon);
+//            ImageIcon avatarIcon = AvatarDisplayHelper.getAvatarImageIcon(room.getAvatar(), 40, 40);
+//            roomAvatarLabel.setIcon(avatarIcon);
 
+            roomAvatarLabel = new ThemedIcon(room.getAvatar(), AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.ROUNDED);
             roomNameLabel.setText(room.getName());
         } else {
-            roomAvatarLabel.setIcon(null);
+            roomAvatarLabel = new JLabel();
             roomNameLabel.setText("Unknown Room");
         }
+
+        add(roomAvatarLabel);
+        add(roomNameLabel);
     }
 
     @Override

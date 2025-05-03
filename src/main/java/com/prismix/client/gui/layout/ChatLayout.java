@@ -21,9 +21,8 @@ public class ChatLayout extends BaseLayout {
     
     public void setRoom(Room room) {
         setHeader(new ChatHeader(room));
-//        mainPanel = new RoomMainPanel(room);
-        mainPanel.setRoom(room);
-//        setContent(mainPanel);
+        mainPanel = new RoomMainPanel(room);
+        setContent(mainPanel);
     }
 
     public void setRooms(ArrayList<Room> rooms) {

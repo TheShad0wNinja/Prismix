@@ -40,7 +40,6 @@ public class MessageHandler implements ResponseHandler, EventListener {
     @Override
     public void onEvent(ApplicationEvent event) {
         if (event.type() == ApplicationEvent.Type.ROOM_USERS_UPDATED) {
-//            currentRoom = (Room) event.data();
             updateMessages();
         } else if (event.type() == ApplicationEvent.Type.ROOM_SELECTED) {
             currentRoom = (Room) event.data();

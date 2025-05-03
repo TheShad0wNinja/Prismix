@@ -9,10 +9,14 @@ import com.prismix.common.model.User;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ChatPanel extends ThemedPanel implements EventListener {
-    JScrollPane chatScrollPane;
-    JPanel mainPanel;
+    private final JScrollPane chatScrollPane;
+    private final JPanel mainPanel;
+    private final AtomicBoolean isUpdating = new AtomicBoolean(false);
+    private static final int MAX_MESSAGES = 100; // Limit number of messages to prevent memory issues
+    
     public ChatPanel() {
         super(Variant.PRIMARY);
         setLayout(new GridLayout(1, 1));
@@ -27,31 +31,51 @@ public class ChatPanel extends ThemedPanel implements EventListener {
         add(chatScrollPane);
 
         ApplicationContext.getEventBus().subscribe(this);
-
     }
 
     private void appendMessage(Message msg) {
-        User user =  ApplicationContext.getRoomHandler().getRoomUser(msg.getSenderId());
-        JPanel messageEntry = new MessageEntry(user, msg);
-        GridBagConstraints c = new GridBagConstraints();
-        c.weightx = 1.0;
-        c.gridx = 0;
-        c.fill = GridBagConstraints.HORIZONTAL;
+        if (isUpdating.getAndSet(true)) {
+            return;
+        }
 
-        mainPanel.add(messageEntry, c);
-        JPanel messageEntry1 = new MessageEntry(user, msg);
+        SwingUtilities.invokeLater(() -> {
+            try {
+                User user = ApplicationContext.getRoomHandler().getRoomUser(msg.getSenderId());
+                if (user == null) {
+                    return;
+                }
 
-        mainPanel.add(messageEntry1, c);
+                JPanel messageEntry = new MessageEntry(user, msg);
+                GridBagConstraints c = new GridBagConstraints();
+                c.weightx = 1.0;
+                c.gridx = 0;
+                c.fill = GridBagConstraints.HORIZONTAL;
 
-        JPanel messageEntry2 = new MessageEntry(user, msg);
-        mainPanel.add(messageEntry2, c);
+                // Remove oldest message if we've reached the limit
+                if (mainPanel.getComponentCount() >= MAX_MESSAGES) {
+                    mainPanel.remove(0);
+                }
 
-        c.weighty = 1.0;
-        c.fill = GridBagConstraints.BOTH;
-        mainPanel.add(Box.createVerticalGlue(), c);
+                mainPanel.add(messageEntry, c);
 
-        mainPanel.revalidate();
-        mainPanel.repaint();
+                // Add vertical glue at the end
+                c.weighty = 1.0;
+                c.fill = GridBagConstraints.BOTH;
+                mainPanel.add(Box.createVerticalGlue(), c);
+
+                // Batch UI updates
+                mainPanel.revalidate();
+                mainPanel.repaint();
+
+                // Scroll to bottom
+                SwingUtilities.invokeLater(() -> {
+                    JScrollBar vertical = chatScrollPane.getVerticalScrollBar();
+                    vertical.setValue(vertical.getMaximum());
+                });
+            } finally {
+                isUpdating.set(false);
+            }
+        });
     }
 
     @Override

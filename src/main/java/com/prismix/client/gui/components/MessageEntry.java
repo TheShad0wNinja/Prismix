@@ -26,7 +26,7 @@ public class MessageEntry extends ThemedPanel {
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setOpaque(false);
 
-        contentPanel.add(new ThemedLabel(user.getUsername(), ThemedLabel.Size.SMALLER));
+        contentPanel.add(new ThemedLabel(user.getDisplayName(), ThemedLabel.Size.SMALLER));
         contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         contentPanel.add(new ThemedLabel(message.getContent(), ThemedLabel.Size.DEFAULT));
 

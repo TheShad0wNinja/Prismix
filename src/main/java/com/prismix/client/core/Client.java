@@ -17,12 +17,5 @@ public class Client {
         if (handlers.containsKey(msg.getMessageType())) {
             handlers.get(msg.getMessageType()).handleResponse(msg);
         }
-//        switch (msg.getMessageType()) {
-
-//            case LOGIN_RESPONSE, SIGNUP_RESPONSE ->
-//                ApplicationContext.getAuthHandler().handleResponse(msg);
-//            case GET_ROOMS_RESPONSE ->
-//                ApplicationContext.getRoomHandler().handleResponse(msg);
-//        }
     }
 }

@@ -58,7 +58,7 @@ public class RoomHandler implements ResponseHandler, EventListener {
             case GET_ROOM_USERS_RESPONSE -> {
                 GetRoomUsersResponse response = (GetRoomUsersResponse) message;
                 currentRoomUsers = new ArrayList<>(response.users());
-                eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.ROOM_USERS_UPDATED, new RoomUsersInfo(currentRoomUsers, currentRoom)));
+                eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.ROOM_USERS_UPDATED, currentRoomUsers));
             }
         }
     }
@@ -67,12 +67,11 @@ public class RoomHandler implements ResponseHandler, EventListener {
         return rooms;
     }
 
-    private void updateRoomUsers() {
+    public void updateRoomUsers() {
         if (currentRoom == null)
             return;
 
         try {
-            System.out.println("FETCHING ROOMS FOR" + currentRoom);
             ConnectionManager.getInstance().sendMessage(new GetRoomUsersRequest(currentRoom));
         } catch (IOException e) {
             System.out.println("Error getting room's users: " + e.getMessage());
@@ -84,7 +83,7 @@ public class RoomHandler implements ResponseHandler, EventListener {
         if (event.type() == ApplicationEvent.Type.ROOM_SELECTED) {
             currentRoom = (Room) event.data();
             System.out.println("Room selected: " + currentRoom);
-            updateRoomUsers();
+//            updateRoomUsers();
         }
     }
 
