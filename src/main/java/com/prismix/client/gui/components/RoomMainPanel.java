@@ -15,6 +15,8 @@ import com.prismix.common.model.network.NetworkMessage;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -144,6 +146,32 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                     ThemedLabel usernameLabel = new ThemedLabel(username, ThemedLabel.Size.SMALLER, ThemedLabel.Variant.BACKGROUND);
                     usernameLabel.setToolTipText(user.getDisplayName());
                     itemPanel.add(usernameLabel);
+
+                    itemPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+                    if (!user.equals(ApplicationContext.getAuthHandler().getUser())) {
+                        itemPanel.addMouseListener(new MouseAdapter() {
+                            @Override
+                            public void mousePressed(MouseEvent e) {
+                                super.mousePressed(e);
+                                System.out.println("CLICK ON : " + user);
+                                ApplicationContext.getVideoChatHandler().initiateCall(user);
+                            }
+
+                            @Override
+                            public void mouseEntered(MouseEvent e) {
+                                super.mouseEntered(e);
+                                itemPanel.setBackground(Color.PINK);
+                            }
+
+                            @Override
+                            public void mouseExited(MouseEvent e) {
+                                super.mouseExited(e);
+                                itemPanel.setBackground(Color.WHITE);
+                            }
+                        });
+                    }
+
 
                     usersPanel.add(itemPanel);
                 }

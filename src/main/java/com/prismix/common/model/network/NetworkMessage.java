@@ -16,6 +16,11 @@ public interface NetworkMessage extends Serializable {
         GET_UNREAD_MESSAGE_REQUEST, GET_UNREAD_MESSAGE_RESPONSE,
                                     RECEIVE_TEXT_MESSAGE_REQUEST,
 
+        // Video Chat Messages
+        VIDEO_CALL_REQUEST, VIDEO_CALL_RESPONSE,
+        VIDEO_CALL_OFFER, VIDEO_CALL_ANSWER,
+        VIDEO_ICE_CANDIDATE, VIDEO_CALL_END,
+
 
 
 //        SEND_FILE_MESSAGE,

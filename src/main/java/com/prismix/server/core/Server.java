@@ -18,6 +18,7 @@ public class Server {
         this.userHandler = new AuthHandler(requestHandlers);
         new RoomHandler(requestHandlers);
         new MessageHandler(userHandler, requestHandlers);
+        new VideoChatHandler(userHandler, requestHandlers);
 
         ServerSocket ss = new ServerSocket(PORT);
         while (!ss.isClosed()) {
