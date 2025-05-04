@@ -6,7 +6,10 @@ public record ApplicationEvent(Type type, Object data) {
         ROOM_LIST_UPDATED,
         ROOM_SELECTED,
         ROOM_USERS_UPDATED,
+        START_CALL,
+        END_CALL,
         MESSAGE,
+        MESSAGES,
         THEME_CHANGED
     }
 }

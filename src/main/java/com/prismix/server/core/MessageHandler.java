@@ -34,7 +34,6 @@ public class MessageHandler implements RequestHandler {
                     }
 
                     Message createdMsg = MessageManager.createMessage(msg);
-                    System.out.println(createdMsg);
                     if (createdMsg == null) {
                         client.sendMessage(new SendTextMessageResponse(msg, false));
                         return;

@@ -1,5 +1,6 @@
 package com.prismix.client.gui.components;
 
+import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.utils.AvatarDisplayHelper;
@@ -8,29 +9,58 @@ import com.prismix.common.model.User;
 
 import javax.swing.*;
 import java.awt.*;
+import java.time.format.DateTimeFormatter;
 
 public class MessageEntry extends ThemedPanel {
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     public MessageEntry(User user, Message message) {
         super(Variant.BACKGROUND);
         setLayout(new GridLayout(1, 1));
 
         JPanel wrapperPanel = new JPanel();
-        setOpaque(false);
-        wrapperPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 20));
+        wrapperPanel.setOpaque(false);
+        wrapperPanel.setLayout(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
 
-        JLabel icon = new JLabel();
-        icon.setIcon(AvatarDisplayHelper.getAvatarImageIcon(user.getAvatar(), 35, 35));
-        wrapperPanel.add(icon);
+        c.gridx = 0;
+        c.insets = new Insets(0, 0, 0, 10);
+        JLabel icon = new ThemedIcon(user.getAvatar(), 35, 35, ThemedIcon.Variant.CIRCLE);
+        wrapperPanel.add(icon, c);
 
         JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setOpaque(false);
+        contentPanel.setLayout(new GridLayout(2, 1));
 
-        contentPanel.add(new ThemedLabel(user.getDisplayName(), ThemedLabel.Size.SMALLER));
-        contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
-        contentPanel.add(new ThemedLabel(message.getContent(), ThemedLabel.Size.DEFAULT));
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new GridBagLayout());
 
-        wrapperPanel.add(contentPanel);
+        c.insets = new Insets(0, 0, 0, 0);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.weightx = 1.0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        infoPanel.setOpaque(false);
+        infoPanel.add(new ThemedLabel(user.getDisplayName(), ThemedLabel.Size.SMALLER), c);
+
+        c.gridx = 1;
+        c.gridy = 0;
+        c.weightx = 0;
+        c.fill = GridBagConstraints.NONE;
+        infoPanel.add(new ThemedLabel(formatter.format(message.getTimestamp().toLocalDateTime()), 12), c);
+
+        JLabel contentLabel = new ThemedLabel(message.getContent(), 18);
+        contentLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        contentLabel.setHorizontalAlignment(SwingConstants.LEFT);
+
+        contentPanel.add(infoPanel);
+        contentPanel.add(contentLabel);
+
+        c.gridx = 1;
+        c.gridy = 0;
+        c.weightx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(0, 10, 0, 0);
+        wrapperPanel.add(contentPanel, c);
 
         add(wrapperPanel);
     }

@@ -13,9 +13,10 @@ public class ThemedLabel extends JLabel implements ThemedComponent, ThemeChangeL
     private Color foregroundColor;
     private Size size;
     private Variant variant;
+    private int fontSize;
 
     public enum Size {
-        DEFAULT, LARGER, TITLE, SMALLER
+        DEFAULT, LARGER, TITLE, SMALLER, CUSTOM
     }
 
     public enum Variant {
@@ -27,18 +28,26 @@ public class ThemedLabel extends JLabel implements ThemedComponent, ThemeChangeL
     }
 
     public ThemedLabel(String text) {
-        this(text, Size.DEFAULT, Variant.BACKGROUND);
+        this(text, Size.DEFAULT, Variant.BACKGROUND, 0);
     }
 
     public ThemedLabel(String text, Size size) {
-        this(text, size, Variant.BACKGROUND);
+        this(text, size, Variant.BACKGROUND, 0);
+    }
+
+    public ThemedLabel(String text, int fontSize) {
+        this(text, Size.CUSTOM, Variant.BACKGROUND, fontSize);
     }
 
     public ThemedLabel(String text, Size size, Variant variant) {
+        this(text, size, variant, 0);
+    }
+
+    public ThemedLabel(String text, Size size, Variant variant, int fontSize) {
         super(text);
         this.size = size;
         this.variant = variant;
-
+        this.fontSize = fontSize;
         setOpaque(false);
 
         applyTheme(ThemeManager.getCurrentTheme());
@@ -67,6 +76,7 @@ public class ThemedLabel extends JLabel implements ThemedComponent, ThemeChangeL
             case LARGER -> theme.getLargerFont();
             case TITLE -> theme.getTitleFont();
             case SMALLER -> theme.getSmallerFont();
+            case CUSTOM -> theme.getDefaultFont().deriveFont(Font.PLAIN, fontSize);
         };
 
         setForeground(foregroundColor);

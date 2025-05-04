@@ -36,9 +36,9 @@ public class MessageHandler implements ResponseHandler, EventListener {
     void updateMessages() {
         ArrayList<Message> messages = MessageRepository.getMessagesByRoomId(currentRoom.getId());
         System.out.println("ROOM MESSAGES: " + messages);
-        for (Message message : messages) {
-            eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.MESSAGE, message));
-        }
+//        for (Message message : messages) {
+        eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.MESSAGES, messages));
+//        }
     }
 
     private synchronized void processMessage() {
@@ -51,7 +51,7 @@ public class MessageHandler implements ResponseHandler, EventListener {
         while (currMsg != null && Boolean.TRUE.equals(pendingMessageStatus.get(currMsg))) {
             System.out.println("ADDING NEW MESSAGE: " + currMsg);
             pendingMessages.poll(); // Remove from queue after confirmation
-            MessageRepository.addMessage(currMsg);
+            MessageRepository.createMessage(currMsg);
             pendingMessageStatus.remove(currMsg);
             eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.MESSAGE, currMsg));
             currMsg = pendingMessages.peek();
@@ -63,7 +63,7 @@ public class MessageHandler implements ResponseHandler, EventListener {
         switch (message.getMessageType()) {
             case RECEIVE_TEXT_MESSAGE_REQUEST -> {
                 ReceiveTextMessageRequest response = (ReceiveTextMessageRequest) message;
-                MessageRepository.addMessage(response.message());
+                MessageRepository.createMessage(response.message());
                 eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.MESSAGE, response.message()));
             }
             case SEND_TEXT_MESSAGE_RESPONSE -> {
@@ -80,7 +80,7 @@ public class MessageHandler implements ResponseHandler, EventListener {
             case GET_UNREAD_MESSAGE_RESPONSE -> {
                 GetUnreadMessagesResponse response = (GetUnreadMessagesResponse) message;
                 for (Message msg : response.messages()) {
-                    MessageRepository.addMessage(msg);
+                    MessageRepository.createMessage(msg);
                 }
             }
         }

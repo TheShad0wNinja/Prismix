@@ -4,6 +4,7 @@ import com.prismix.common.model.Message;
 import com.prismix.server.utils.ServerDatabaseManager;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,8 +14,8 @@ public class MessageRepository {
 
     public static Message createMessage(Message message) throws SQLException {
         String sql = message.isDirect()
-                ? "INSERT INTO message (sender_id, receiver_id, content, direct) VALUES (?, ?, ?, ?)"
-                : "INSERT INTO message (sender_id, room_id, content, direct) VALUES (?, ?, ?, ?)";
+                ? "INSERT INTO message (sender_id, receiver_id, content, direct, timestamp) VALUES (?, ?, ?, ?, ?)"
+                : "INSERT INTO message (sender_id, room_id, content, direct, timestamp) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = ServerDatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -27,6 +28,11 @@ public class MessageRepository {
             }
             pstmt.setString(3, message.getContent());
             pstmt.setBoolean(4, message.isDirect());
+
+            if (message.getTimestamp() == null)
+                pstmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
+            else
+                pstmt.setTimestamp(5, message.getTimestamp());
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows == 0) {
@@ -47,7 +53,8 @@ public class MessageRepository {
                             timestamp = rs.getTimestamp("timestamp");
                         }
                     }
-                    
+
+//                    message.setTimestamp(timestamp);
                     return new Message(id, message.getSenderId(), message.getReceiverId(), message.getRoomId(), message.getContent(), message.isDirect(), timestamp);
                 } else {
                     throw new SQLException("Creating message failed, no ID obtained.");

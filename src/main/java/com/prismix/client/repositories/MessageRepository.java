@@ -3,18 +3,18 @@ package com.prismix.client.repositories;
 import com.prismix.client.core.handlers.ApplicationContext;
 import com.prismix.client.utils.ClientDatabaseManager;
 import com.prismix.common.model.Message;
-import com.prismix.common.model.User;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class MessageRepository {
-    public static void addMessage(Message message) {
+    public static void createMessage(Message message) {
         String sql;
         if (message.isDirect()) {
-            sql = "INSERT INTO message (sender_id, receiver_id, content, direct, owner_id) VALUES (?, ?, ?, ?, ?)";
+            sql = "INSERT INTO message (sender_id, receiver_id, content, direct, owner_id, timestamp) VALUES (?, ?, ?, ?, ?, ?)";
         } else {
-            sql = "INSERT INTO message (sender_id, room_id, content, direct, owner_id) VALUES (?, ?, ?, ?, ?)";
+            sql = "INSERT INTO message (sender_id, room_id, content, direct, owner_id, timestamp) VALUES (?, ?, ?, ?, ?, ?)";
         }
 
         try (Connection conn = ClientDatabaseManager.getConnection();
@@ -29,6 +29,11 @@ public class MessageRepository {
             stmt.setString(3, message.getContent());
             stmt.setBoolean(4, message.isDirect());
             stmt.setInt(5, ApplicationContext.getAuthHandler().getUser().getId());
+
+            if (message.getTimestamp() == null)
+                stmt.setTimestamp(6, Timestamp.valueOf(LocalDateTime.now()));
+            else
+                stmt.setTimestamp(6, message.getTimestamp());
 
             stmt.executeUpdate();
             ResultSet rs = stmt.getGeneratedKeys();

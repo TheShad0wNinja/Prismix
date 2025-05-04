@@ -45,7 +45,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         c.fill = GridBagConstraints.BOTH;
         add(chatPanel, c);
 
-        usersPanel = new ThemedPanel(Variant.BACKGROUND);
+        usersPanel = new ThemedPanel(Variant.BACKGROUND, Border.LEFT);
         usersPanel.setLayout(new BoxLayout(usersPanel, BoxLayout.Y_AXIS));
         usersPanel.setPreferredSize(new Dimension(USERS_PANEL_WIDTH, 0));
         usersPanel.setMinimumSize(new Dimension(USERS_PANEL_WIDTH, 0));
@@ -68,7 +68,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         messageInputPanel.setLayout(new BorderLayout(5, 5));
         messageInputPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 
-        ThemedTextField messageInput = new ThemedTextField("");
+        ThemedTextField messageInput = new ThemedTextField("Type a message...");
         messageInput.setPreferredSize(new Dimension(0, 30));
         messageInputPanel.add(messageInput, BorderLayout.CENTER);
 
@@ -77,7 +77,6 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         sendButton.addActionListener(e -> sendMessage(messageInput));
         messageInputPanel.add(sendButton, BorderLayout.EAST);
 
-        // Add message input panel at the bottom
         c.gridx = 0;
         c.gridy = 1;
         c.gridwidth = 2;
@@ -105,7 +104,8 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                 -1,
                 room.getId(),
                 content,
-                false
+                false,
+                Timestamp.valueOf(LocalDateTime.now())
         );
 
         try {
