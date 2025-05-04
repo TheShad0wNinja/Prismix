@@ -36,9 +36,7 @@ public class MessageHandler implements ResponseHandler, EventListener {
     void updateMessages() {
         ArrayList<Message> messages = MessageRepository.getMessagesByRoomId(currentRoom.getId());
         System.out.println("ROOM MESSAGES: " + messages);
-//        for (Message message : messages) {
         eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.MESSAGES, messages));
-//        }
     }
 
     private synchronized void processMessage() {
@@ -95,7 +93,7 @@ public class MessageHandler implements ResponseHandler, EventListener {
                 System.out.println("Unable to get unread messages");
             }
         }
-        if (event.type() == ApplicationEvent.Type.ROOM_USERS_UPDATED) {
+        else if (event.type() == ApplicationEvent.Type.ROOM_USERS_UPDATED) {
             updateMessages();
         } else if (event.type() == ApplicationEvent.Type.ROOM_SELECTED) {
             currentRoom = (Room) event.data();

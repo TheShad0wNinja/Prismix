@@ -9,15 +9,19 @@ import com.prismix.common.model.User;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ChatPanel extends ThemedPanel implements EventListener {
     private final JScrollPane chatScrollPane;
     private final JPanel mainPanel;
     private final AtomicBoolean isUpdating = new AtomicBoolean(false);
-    private final ConcurrentLinkedQueue<Message> messages = new ConcurrentLinkedQueue<>();
+    private final PriorityBlockingQueue<Message> messages = new PriorityBlockingQueue<>(
+            11,
+            Comparator.comparing(Message::getTimestamp)
+    );
     private int messageCount = 0;
     private final Component verticalGlue;
 
