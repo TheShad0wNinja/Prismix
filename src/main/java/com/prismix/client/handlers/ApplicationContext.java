@@ -1,4 +1,4 @@
-package com.prismix.client.core.handlers;
+package com.prismix.client.handlers;
 
 import com.prismix.client.core.Client;
 import com.prismix.client.core.EventBus;

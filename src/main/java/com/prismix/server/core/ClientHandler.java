@@ -14,6 +14,7 @@ public class ClientHandler implements Runnable {
     ObjectOutputStream out;
     ObjectInputStream in;
     Server server;
+    User user;
 
     public ClientHandler(Socket socket, Server server) {
         this.socket = socket;
@@ -46,21 +47,22 @@ public class ClientHandler implements Runnable {
         while (socket.isConnected() && !socket.isClosed()) {
             try {
                 NetworkMessage message = (NetworkMessage) in.readObject();
-                System.out.println("Received message: " + message);
+                System.out.printf("Received message: %s %s\n", message, (user == null ? "" : "from: " + user.getUsername()));
                 server.processMessage(message, this);
             } catch (IOException | ClassNotFoundException e) {
                 System.out.println("Error: " + e.getMessage());
                 break;
             }
         }
-        System.out.println("Session closed");
-        try {
-            out.close();
-            in.close();
-            socket.close();
-        } catch (IOException e) {
-            System.out.println("Error closing socket: " + e.getMessage());
-        }
+        close();
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public User getUser() {
+        return this.user;
     }
 
     @Override
@@ -70,6 +72,17 @@ public class ClientHandler implements Runnable {
             startSession();
         } catch (IOException e) {
             System.out.println("Error initializing session for " + socket);
+        }
+    }
+
+    public void close() {
+        System.out.println("Session closed");
+        try {
+            out.close();
+            in.close();
+            socket.close();
+        } catch (IOException e) {
+            System.out.println("Error closing socket: " + e.getMessage());
         }
     }
 }

@@ -2,16 +2,14 @@ package com.prismix.client.gui.components;
 
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
-import com.prismix.client.core.handlers.ApplicationContext;
+import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.components.themed.ThemedTextField;
-import com.prismix.client.utils.AvatarDisplayHelper;
 import com.prismix.common.model.Message;
 import com.prismix.common.model.Room;
 import com.prismix.common.model.User;
-import com.prismix.common.model.network.NetworkMessage;
 
 import javax.swing.*;
 import java.awt.*;

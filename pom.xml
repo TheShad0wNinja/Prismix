@@ -40,6 +40,13 @@
             <version>2.0.17</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- ICE4j for NAT traversal -->
+        <dependency>
+            <groupId>org.jitsi</groupId>
+            <artifactId>ice4j</artifactId>
+            <version>3.2-8-gfa5f931</version>
+        </dependency>
     </dependencies>
 
     <properties>

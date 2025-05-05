@@ -1,6 +1,6 @@
 package com.prismix.client.repositories;
 
-import com.prismix.client.core.handlers.ApplicationContext;
+import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.utils.ClientDatabaseManager;
 import com.prismix.common.model.Message;
 

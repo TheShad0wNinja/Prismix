@@ -1,7 +1,7 @@
 package com.prismix.client.gui.components;
 
 import com.prismix.client.core.EventListener;
-import com.prismix.client.core.handlers.ApplicationContext;
+import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
@@ -9,7 +9,6 @@ import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.themes.Theme;
 import com.prismix.client.gui.themes.ThemeManager;
 import com.prismix.client.gui.themes.ThemePainter;
-import com.prismix.client.utils.AvatarDisplayHelper;
 import com.prismix.common.model.Room;
 
 import javax.swing.*;

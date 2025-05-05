@@ -1,8 +1,10 @@
-package com.prismix.server.core;
+package com.prismix.server.handlers;
 
 import com.prismix.common.model.network.*;
 import com.prismix.common.model.Message;
 import com.prismix.common.model.User;
+import com.prismix.server.core.ClientHandler;
+import com.prismix.server.core.RequestHandler;
 import com.prismix.server.data.manager.MessageManager;
 import com.prismix.server.data.manager.RoomManager;
 

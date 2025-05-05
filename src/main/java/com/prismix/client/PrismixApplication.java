@@ -1,6 +1,5 @@
 package com.prismix.client;
 
-import com.prismix.client.core.handlers.ApplicationContext;
 import com.prismix.client.gui.screens.MainFrame;
 
 import javax.swing.*;

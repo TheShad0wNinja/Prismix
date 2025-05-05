@@ -19,7 +19,7 @@ public interface NetworkMessage extends Serializable {
         // Video Chat Messages
         VIDEO_CALL_REQUEST, VIDEO_CALL_RESPONSE,
         VIDEO_CALL_OFFER, VIDEO_CALL_ANSWER,
-        VIDEO_ICE_CANDIDATE, VIDEO_CALL_END,
+        VIDEO_CALL_END,
 
 
 

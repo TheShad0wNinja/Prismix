@@ -1,13 +1,14 @@
-package com.prismix.server.core;
+package com.prismix.server.handlers;
 
 import com.prismix.common.model.User;
 import com.prismix.common.model.network.*;
+import com.prismix.server.core.ClientHandler;
+import com.prismix.server.core.RequestHandler;
 import com.prismix.server.data.manager.UserManager;
 
-import java.io.IOException;
 import java.util.HashMap;
 
-public class AuthHandler implements RequestHandler{
+public class AuthHandler implements RequestHandler {
     private final HashMap<User, ClientHandler> activeUsers;
 
     public AuthHandler(HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
@@ -32,6 +33,7 @@ public class AuthHandler implements RequestHandler{
                 } else {
                     response = new SignupResponse(true, null, user);
                     activeUsers.put(user, clientHandler);
+                    clientHandler.setUser(user);
                 }
                 clientHandler.sendMessage(response);
             }
@@ -44,6 +46,7 @@ public class AuthHandler implements RequestHandler{
                 else {
                     response = new LoginResponse(true, null, user);
                     activeUsers.put(user, clientHandler);
+                    clientHandler.setUser(user);
                 }
                 clientHandler.sendMessage(response);
             }

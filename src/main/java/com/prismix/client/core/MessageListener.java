@@ -24,5 +24,6 @@ public class MessageListener implements Runnable {
                 System.out.println(e.getMessage());
             }
         }
+        manager.close();
     }
 }

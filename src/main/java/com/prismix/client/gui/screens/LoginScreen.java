@@ -1,6 +1,6 @@
 package com.prismix.client.gui.screens;
 
-import com.prismix.client.core.handlers.ApplicationContext;
+import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedButton;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;

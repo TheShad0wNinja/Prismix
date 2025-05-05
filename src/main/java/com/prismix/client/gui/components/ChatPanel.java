@@ -2,7 +2,7 @@ package com.prismix.client.gui.components;
 
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
-import com.prismix.client.core.handlers.ApplicationContext;
+import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.common.model.Message;
 import com.prismix.common.model.User;

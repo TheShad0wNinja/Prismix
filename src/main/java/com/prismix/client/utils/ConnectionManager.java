@@ -29,7 +29,7 @@ public class ConnectionManager {
     private void startConnection() {
         try {
             System.out.println("Starting connection...");
-            socket = new Socket("localhost", 6969);
+            socket = new Socket("localhost", 42069);
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
             System.out.println("Connection Established");
@@ -45,5 +45,16 @@ public class ConnectionManager {
 
     public NetworkMessage receiveMessage() throws IOException, ClassNotFoundException {
         return (NetworkMessage) in.readObject();
+    }
+
+    public void close() {
+        System.out.println("Closing connection...");
+        try {
+            out.close();
+            in.close();
+            socket.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

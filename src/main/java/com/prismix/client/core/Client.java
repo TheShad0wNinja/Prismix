@@ -1,6 +1,6 @@
 package com.prismix.client.core;
 
-import com.prismix.client.core.handlers.ResponseHandler;
+import com.prismix.client.handlers.ResponseHandler;
 import com.prismix.common.model.network.NetworkMessage;
 
 import java.util.HashMap;
