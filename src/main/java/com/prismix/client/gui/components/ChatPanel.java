@@ -20,8 +20,7 @@ public class ChatPanel extends ThemedPanel implements EventListener {
     private final AtomicBoolean isUpdating = new AtomicBoolean(false);
     private final PriorityBlockingQueue<Message> messages = new PriorityBlockingQueue<>(
             11,
-            Comparator.comparing(Message::getTimestamp)
-    );
+            Comparator.comparing(Message::getTimestamp));
     private int messageCount = 0;
     private final Component verticalGlue;
 

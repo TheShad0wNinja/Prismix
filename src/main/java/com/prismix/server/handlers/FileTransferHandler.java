@@ -9,6 +9,7 @@ import com.prismix.server.data.repository.UserRepository;
 import java.io.*;
 import java.nio.file.*;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -27,6 +28,8 @@ public class FileTransferHandler implements RequestHandler {
         this.recipients = new HashMap<>();
         this.uploadDirectory = Paths.get("uploads");
         requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_REQUEST, this);
+        requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_UPLOAD_REQUEST, this);
+        requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_DOWNLOAD_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_CHUNK, this);
 
         try {
@@ -40,13 +43,26 @@ public class FileTransferHandler implements RequestHandler {
     public void handleRequest(NetworkMessage message, ClientHandler client) {
         switch (message.getMessageType()) {
             case FILE_TRANSFER_REQUEST -> handleTransferRequest((FileTransferRequest) message, client);
+            case FILE_TRANSFER_UPLOAD_REQUEST -> handleUploadRequest((FileTransferUploadRequest) message, client);
+            case FILE_TRANSFER_DOWNLOAD_REQUEST -> handleDownloadRequest((FileTransferDownloadRequest) message, client);
             case FILE_TRANSFER_CHUNK -> handleTransferChunk((FileTransferChunk) message, client);
             default -> {
             }
         }
     }
 
+    // Legacy method for backward compatibility
     private void handleTransferRequest(FileTransferRequest request, ClientHandler client) {
+        handleUploadRequest(new FileTransferUploadRequest(
+                request.getFileName(),
+                request.getFileSize(),
+                request.getSenderId(),
+                request.getRoomId(),
+                request.isDirect(),
+                request.getReceiverId()), client);
+    }
+
+    private void handleUploadRequest(FileTransferUploadRequest request, ClientHandler client) {
         try {
             // Only check recipient for direct transfers
             if (request.isDirect()) {
@@ -72,7 +88,8 @@ public class FileTransferHandler implements RequestHandler {
             transferredBytes.put(transferId, 0L);
             recipients.put(transferId, client);
 
-            client.sendMessage(new FileTransferResponse(true, request.getFileName(), transferId));
+            // Send response to uploader
+            client.sendMessage(new FileTransferUploadResponse(true, request.getFileName(), transferId));
 
             // Forward request to recipient if direct transfer
             if (request.isDirect()) {
@@ -85,6 +102,108 @@ public class FileTransferHandler implements RequestHandler {
                     System.err.println("Error notifying recipient: " + e.getMessage());
                 }
             }
+        } catch (SQLException e) {
+            System.err.println("Database error: " + e.getMessage());
+            client.sendMessage(new FileTransferError(null, "Internal server error"));
+        }
+    }
+
+    private void handleDownloadRequest(FileTransferDownloadRequest request, ClientHandler client) {
+        try {
+            System.out.println("a7a");
+            String fileName = request.getFileName();
+
+            // Check if the file exists in uploads
+            File[] files = uploadDirectory.toFile().listFiles();
+            if (files == null) {
+                client.sendMessage(new FileTransferError(null, "File not found: " + fileName));
+                return;
+            }
+            System.out.println("a7a2");
+            // Look for a file with the requested name
+            File requestedFile = null;
+            for (File file : files) {
+                // Check if the file name contains the requested name after the UUID_
+                if (file.isFile() && file.getName().contains("_" + fileName)) {
+                    requestedFile = file;
+                    break;
+                }
+            }
+
+            if (requestedFile == null) {
+                client.sendMessage(new FileTransferError(null, "File not found: " + fileName));
+                return;
+            }
+            System.out.println("a7a3");
+            String transferId = UUID.randomUUID().toString();
+
+            // Create record in database
+            int dbTransferId = FileTransferRepository.createDownloadTransfer(
+                    request.getRequesterId(), request.getRoomId(), requestedFile.getPath(), fileName, transferId);
+
+            if (dbTransferId == -1) {
+                client.sendMessage(new FileTransferError(null, "Failed to create transfer record"));
+                return;
+            }
+            System.out.println("a7a4");
+            // Set up transfer data
+            transferPaths.put(transferId, requestedFile.getPath());
+            transferSizes.put(transferId, requestedFile.length());
+            transferredBytes.put(transferId, 0L);
+            recipients.put(transferId, client);
+
+            // Send download response to client
+            client.sendMessage(new FileTransferDownloadResponse(
+                    true, fileName, transferId, requestedFile.length()));
+
+            // Start sending file chunks in a background thread
+            File finalRequestedFile = requestedFile;
+            new Thread(() -> {
+                try (FileInputStream fis = new FileInputStream(finalRequestedFile)) {
+                    byte[] buffer = new byte[8192]; // 8KB chunks
+                    int totalChunks = (int) Math.ceil((double) finalRequestedFile.length() / 8192);
+                    int chunkNumber = 0;
+                    int bytesRead;
+
+                    while ((bytesRead = fis.read(buffer)) != -1) {
+                        byte[] chunk = bytesRead < 8192 ? Arrays.copyOf(buffer, bytesRead) : buffer;
+                        FileTransferChunk chunkMessage = new FileTransferChunk(
+                                transferId,
+                                chunk,
+                                chunkNumber,
+                                totalChunks);
+
+                        client.sendMessage(chunkMessage);
+
+                        // Update progress
+                        int progress = (int) ((chunkNumber + 1.0) / totalChunks * 100);
+                        client.sendMessage(new FileTransferProgress(
+                                transferId,
+                                progress,
+                                (chunkNumber + 1) * bytesRead,
+                                finalRequestedFile.length()));
+
+                        chunkNumber++;
+                    }
+
+                    // Send completion message
+                    client.sendMessage(new FileTransferComplete(
+                            transferId, fileName, finalRequestedFile.length(), 0, request.getRoomId(), false,
+                            request.getRequesterId()));
+
+                    // Update database
+                    FileTransferRepository.updateFileTransferStatus(transferId, "COMPLETED");
+                } catch (Exception e) {
+                    System.err.println("Error sending file: " + e.getMessage());
+                    try {
+                        client.sendMessage(new FileTransferError(transferId, "Error sending file: " + e.getMessage()));
+                        FileTransferRepository.updateFileTransferStatus(transferId, "FAILED");
+                    } catch (Exception ex) {
+                        System.err.println("Error sending error message: " + ex.getMessage());
+                    }
+                }
+            }).start();
+
         } catch (SQLException e) {
             System.err.println("Database error: " + e.getMessage());
             client.sendMessage(new FileTransferError(null, "Internal server error"));

@@ -12,6 +12,7 @@ import java.awt.*;
 public class ChatHeader extends ThemedPanel {
     private static final int AVATAR_SIZE = 20;
     Room room;
+
     public ChatHeader(Room room) {
         super(Variant.SURFACE_ALT);
         this.room = room;
@@ -21,8 +22,9 @@ public class ChatHeader extends ThemedPanel {
 
     private void initComponents() {
         setLayout(new FlowLayout(FlowLayout.CENTER, 5, 10));
-//        JLabel icon =  new JLabel();
-//        icon.setIcon(AvatarDisplayHelper.getAvatarImageIcon(room.getAvatar(), 50, 50));
+        // JLabel icon = new JLabel();
+        // icon.setIcon(AvatarDisplayHelper.getAvatarImageIcon(room.getAvatar(), 50,
+        // 50));
         if (room.getId() != -1) {
             JLabel icon = new ThemedIcon(room.getAvatar(), AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.ROUNDED);
             add(icon);

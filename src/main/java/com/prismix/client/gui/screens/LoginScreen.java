@@ -39,7 +39,7 @@ public class LoginScreen extends ThemedPanel {
         c.insets = new Insets(10, 15, 10, 15);
 
         JTextField usernameField = new ThemedTextField();
-        usernameField.setText("khalid");
+        usernameField.setText("zeyad");
         add(usernameField, c);
 
         c.gridx = 0;

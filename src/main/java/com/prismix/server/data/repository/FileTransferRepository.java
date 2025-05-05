@@ -1,8 +1,10 @@
 package com.prismix.server.data.repository;
 
 import com.prismix.common.model.network.FileTransferRequest;
+import com.prismix.common.model.network.FileTransferUploadRequest;
 import com.prismix.server.utils.ServerDatabaseManager;
 
+import java.io.File;
 import java.sql.*;
 import java.time.LocalDateTime;
 
@@ -10,30 +12,88 @@ public class FileTransferRepository {
     private FileTransferRepository() {
     }
 
-    public static int createFileTransfer(FileTransferRequest request, String filePath, String transfer_id)
+    public static int createFileTransfer(FileTransferRequest request, String filePath, String transferId)
             throws SQLException {
+        return createFileTransferInternal(
+                request.getFileName(),
+                filePath,
+                request.getFileSize(),
+                request.getSenderId(),
+                request.getRoomId(),
+                request.getReceiverId(),
+                request.isDirect(),
+                transferId);
+    }
+
+    public static int createFileTransfer(FileTransferUploadRequest request, String filePath, String transferId)
+            throws SQLException {
+        return createFileTransferInternal(
+                request.getFileName(),
+                filePath,
+                request.getFileSize(),
+                request.getSenderId(),
+                request.getRoomId(),
+                request.getReceiverId(),
+                request.isDirect(),
+                transferId);
+    }
+
+    public static int createDownloadTransfer(int requesterId, int roomId, String filePath, String fileName,
+            String transferId) throws SQLException {
         String sql = """
                 INSERT INTO file_transfer (
-                    file_name, file_path, file_size, sender_id, room_id, receiver_id, is_direct, status, transfer_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)
+                    file_name, file_path, transfer_id, file_size, sender_id, room_id, receiver_id, is_direct, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
                 """;
 
         try (Connection conn = ServerDatabaseManager.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setString(1, request.getFileName());
+            pstmt.setString(1, fileName);
             pstmt.setString(2, filePath);
-            pstmt.setLong(3, request.getFileSize());
-            pstmt.setInt(4, request.getSenderId());
-            pstmt.setInt(5, request.getRoomId());
-            pstmt.setInt(6, request.getReceiverId());
-            pstmt.setBoolean(7, request.isDirect());
-            pstmt.setString(8, transfer_id);
+            pstmt.setString(3, transferId);
+            pstmt.setLong(4, new File(filePath).length());
+            pstmt.setInt(5, 0); // No sender for download
+            pstmt.setInt(6, roomId);
+            pstmt.setInt(7, requesterId);
+            pstmt.setBoolean(8, false);
 
             pstmt.executeUpdate();
-            ResultSet rs = pstmt.getGeneratedKeys();
-            if (rs.next()) {
-                return rs.getInt(1);
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+            return -1;
+        }
+    }
+
+    private static int createFileTransferInternal(String fileName, String filePath, long fileSize,
+            int senderId, int roomId, int receiverId, boolean isDirect,
+            String transferId) throws SQLException {
+        String sql = """
+                INSERT INTO file_transfer (
+                    file_name, file_path, transfer_id, file_size, sender_id, room_id, receiver_id, is_direct, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+                """;
+
+        try (Connection conn = ServerDatabaseManager.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            pstmt.setString(1, fileName);
+            pstmt.setString(2, filePath);
+            pstmt.setString(3, transferId);
+            pstmt.setLong(4, fileSize);
+            pstmt.setInt(5, senderId);
+            pstmt.setInt(6, roomId);
+            pstmt.setInt(7, receiverId);
+            pstmt.setBoolean(8, isDirect);
+
+            pstmt.executeUpdate();
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
             }
             return -1;
         }
@@ -58,11 +118,12 @@ public class FileTransferRepository {
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, transferId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getString("file_path");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("file_path");
+                }
             }
-            return null;
         }
+        return null;
     }
 }

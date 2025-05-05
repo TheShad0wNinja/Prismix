@@ -1,6 +1,7 @@
 package com.prismix.client.data.repository;
 
 import com.prismix.common.model.network.FileTransferRequest;
+import com.prismix.common.model.network.FileTransferUploadRequest;
 import com.prismix.client.utils.ClientDatabaseManager;
 
 import java.sql.*;
@@ -12,22 +13,74 @@ public class FileTransferRepository {
     }
 
     public static int createFileTransfer(FileTransferRequest request, String filePath) throws SQLException {
+        return createFileTransferInternal(
+                request.getFileName(),
+                filePath,
+                request.getFileSize(),
+                request.getSenderId(),
+                request.getRoomId(),
+                request.getReceiverId(),
+                request.isDirect(),
+                request.getFileName());
+    }
+
+    public static int createFileTransfer(FileTransferUploadRequest request, String filePath) throws SQLException {
+        return createFileTransferInternal(
+                request.getFileName(),
+                filePath,
+                request.getFileSize(),
+                request.getSenderId(),
+                request.getRoomId(),
+                request.getReceiverId(),
+                request.isDirect(),
+                request.getFileName());
+    }
+
+    public static int createFileTransfer(FileTransferRequest request, String filePath, String transferId)
+            throws SQLException {
+        return createFileTransferInternal(
+                request.getFileName(),
+                filePath,
+                request.getFileSize(),
+                request.getSenderId(),
+                request.getRoomId(),
+                request.getReceiverId(),
+                request.isDirect(),
+                transferId);
+    }
+
+    public static int createFileTransfer(FileTransferUploadRequest request, String filePath, String transferId)
+            throws SQLException {
+        return createFileTransferInternal(
+                request.getFileName(),
+                filePath,
+                request.getFileSize(),
+                request.getSenderId(),
+                request.getRoomId(),
+                request.getReceiverId(),
+                request.isDirect(),
+                transferId);
+    }
+
+    private static int createFileTransferInternal(String fileName, String filePath, long fileSize,
+            int senderId, int roomId, int receiverId, boolean isDirect, String transferId) throws SQLException {
         String sql = """
                 INSERT INTO file_transfer (
-                    file_name, file_path, file_size, sender_id, room_id, receiver_id, is_direct, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING')
+                    file_name, file_path, file_size, sender_id, room_id, receiver_id, is_direct, status, transfer_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)
                 """;
 
         try (Connection conn = ClientDatabaseManager.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setString(1, request.getFileName());
+            pstmt.setString(1, fileName);
             pstmt.setString(2, filePath);
-            pstmt.setLong(3, request.getFileSize());
-            pstmt.setInt(4, request.getSenderId());
-            pstmt.setInt(5, request.getRoomId());
-            pstmt.setInt(6, request.getReceiverId());
-            pstmt.setBoolean(7, request.isDirect());
+            pstmt.setLong(3, fileSize);
+            pstmt.setInt(4, senderId);
+            pstmt.setInt(5, roomId);
+            pstmt.setInt(6, receiverId);
+            pstmt.setBoolean(7, isDirect);
+            pstmt.setString(8, transferId);
 
             pstmt.executeUpdate();
             ResultSet rs = pstmt.getGeneratedKeys();
@@ -68,10 +121,27 @@ public class FileTransferRepository {
                         rs.getInt("room_id"),
                         rs.getInt("receiver_id"),
                         rs.getBoolean("is_direct"),
-                        rs.getString("status")));
+                        rs.getString("status"),
+                        rs.getString("transfer_id")));
             }
         }
         return transfers;
+    }
+
+    public static String getFilePath(String transferId) throws SQLException {
+        String sql = "SELECT file_path FROM file_transfer WHERE transfer_id = ?";
+
+        try (Connection conn = ClientDatabaseManager.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, transferId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("file_path");
+            }
+            return null;
+        }
     }
 
     public static class FileTransferInfo {
@@ -84,9 +154,10 @@ public class FileTransferRepository {
         private final int receiverId;
         private final boolean isDirect;
         private final String status;
+        private final String transferId;
 
         public FileTransferInfo(int id, String fileName, String filePath, long fileSize,
-                int senderId, int roomId, int receiverId, boolean isDirect, String status) {
+                int senderId, int roomId, int receiverId, boolean isDirect, String status, String transferId) {
             this.id = id;
             this.fileName = fileName;
             this.filePath = filePath;
@@ -96,6 +167,7 @@ public class FileTransferRepository {
             this.receiverId = receiverId;
             this.isDirect = isDirect;
             this.status = status;
+            this.transferId = transferId;
         }
 
         public int getId() {
@@ -132,6 +204,10 @@ public class FileTransferRepository {
 
         public String getStatus() {
             return status;
+        }
+
+        public String getTransferId() {
+            return transferId;
         }
     }
 }

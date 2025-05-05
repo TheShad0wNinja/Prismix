@@ -8,12 +8,14 @@ import com.prismix.client.utils.ConnectionManager;
 import com.prismix.common.model.network.*;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.nio.file.*;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class FileTransferHandler implements ResponseHandler {
     private final EventBus eventBus;
@@ -30,17 +32,22 @@ public class FileTransferHandler implements ResponseHandler {
         this.authHandler = authHandler;
         this.fileStreams = new HashMap<>();
         this.progressBars = new HashMap<>();
-        this.downloadDirectory = Paths.get("downloads");
+        this.downloadDirectory = Paths.get(System.getProperty("user.home"), "Prismix", "Downloads");
         this.pendingFiles = new HashMap<>();
 
         try {
             Files.createDirectories(downloadDirectory);
+            System.out.println("Download directory created at: " + downloadDirectory.toAbsolutePath());
         } catch (IOException e) {
             System.err.println("Failed to create download directory: " + e.getMessage());
         }
 
         responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_REQUEST, this);
         responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_RESPONSE, this);
+        responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_UPLOAD_REQUEST, this);
+        responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_UPLOAD_RESPONSE, this);
+        responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_DOWNLOAD_REQUEST, this);
+        responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_DOWNLOAD_RESPONSE, this);
         responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_PROGRESS, this);
         responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_CHUNK, this);
         responseHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_COMPLETE, this);
@@ -54,7 +61,7 @@ public class FileTransferHandler implements ResponseHandler {
         }
 
         try {
-            FileTransferRequest request = new FileTransferRequest(
+            FileTransferUploadRequest request = new FileTransferUploadRequest(
                     file.getName(),
                     file.length(),
                     authHandler.getUser().getId(),
@@ -71,11 +78,33 @@ public class FileTransferHandler implements ResponseHandler {
         }
     }
 
+    public void downloadFile(String fileName, int roomId) {
+        if (authHandler.getUser() == null) {
+            System.err.println("Cannot download file: User not logged in");
+            return;
+        }
+
+        try {
+            FileTransferDownloadRequest request = new FileTransferDownloadRequest(
+                    fileName,
+                    authHandler.getUser().getId(),
+                    roomId);
+
+            ConnectionManager.getInstance().sendMessage(request);
+        } catch (IOException e) {
+            System.err.println("Error sending file download request: " + e.getMessage());
+        }
+    }
+
     @Override
     public void handleResponse(NetworkMessage message) {
         switch (message.getMessageType()) {
-            case FILE_TRANSFER_REQUEST -> handleIncomingTransfer((FileTransferRequest) message);
+            case FILE_TRANSFER_REQUEST -> handleTransferRequest((FileTransferRequest) message);
             case FILE_TRANSFER_RESPONSE -> handleTransferResponse((FileTransferResponse) message);
+            case FILE_TRANSFER_UPLOAD_REQUEST -> handleUploadRequest((FileTransferUploadRequest) message);
+            case FILE_TRANSFER_UPLOAD_RESPONSE -> handleUploadResponse((FileTransferUploadResponse) message);
+            case FILE_TRANSFER_DOWNLOAD_REQUEST -> handleDownloadRequest((FileTransferDownloadRequest) message);
+            case FILE_TRANSFER_DOWNLOAD_RESPONSE -> handleDownloadResponse((FileTransferDownloadResponse) message);
             case FILE_TRANSFER_PROGRESS -> handleTransferProgress((FileTransferProgress) message);
             case FILE_TRANSFER_CHUNK -> handleTransferChunk((FileTransferChunk) message);
             case FILE_TRANSFER_COMPLETE -> handleTransferComplete((FileTransferComplete) message);
@@ -83,43 +112,100 @@ public class FileTransferHandler implements ResponseHandler {
         }
     }
 
-    private void handleIncomingTransfer(FileTransferRequest request) {
+    // Legacy methods for backward compatibility
+    private void handleTransferRequest(FileTransferRequest request) {
+        handleUploadRequest(new FileTransferUploadRequest(
+                request.getFileName(),
+                request.getFileSize(),
+                request.getSenderId(),
+                request.getRoomId(),
+                request.isDirect(),
+                request.getReceiverId()));
+    }
+
+    private void handleTransferResponse(FileTransferResponse response) {
+        handleUploadResponse(new FileTransferUploadResponse(
+                response.isAccepted(),
+                response.getMessage(),
+                response.getTransferId()));
+    }
+
+    // New methods for handling uploads
+    private void handleUploadRequest(FileTransferUploadRequest request) {
         try {
             // Create file output stream
             String fileName = request.getFileName();
-            Path filePath = downloadDirectory.resolve(fileName);
+            Path filePath = this.downloadDirectory.resolve(fileName);
+
+            // Check if file already exists and add a number if it does
+            int counter = 1;
+            String baseName = fileName;
+            String extension = "";
+            int dotIndex = fileName.lastIndexOf('.');
+            if (dotIndex > 0) {
+                baseName = fileName.substring(0, dotIndex);
+                extension = fileName.substring(dotIndex);
+            }
+
+            while (Files.exists(filePath)) {
+                fileName = baseName + " (" + counter + ")" + extension;
+                filePath = this.downloadDirectory.resolve(fileName);
+                counter++;
+            }
+
+            System.out.println("Creating file at: " + filePath.toAbsolutePath());
             FileOutputStream fos = new FileOutputStream(filePath.toFile());
-            fileStreams.put(fileName, fos);
+
+            // Generate a transfer ID
+            String transferId = UUID.randomUUID().toString();
+            fileStreams.put(transferId, fos);
 
             // Create progress bar
             ThemedProgressBar progressBar = new ThemedProgressBar();
             progressBar.setMaximum(100);
             progressBar.setString(fileName);
-            progressBars.put(fileName, progressBar);
+            progressBars.put(transferId, progressBar);
 
-            // Show progress bar
+            // Show progress bar in a dialog
             SwingUtilities.invokeLater(() -> {
-                JOptionPane.showMessageDialog(null, progressBar, "File Transfer Progress", JOptionPane.PLAIN_MESSAGE);
+                JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(null), "Download Progress",
+                        false);
+                dialog.setLayout(new BorderLayout());
+                dialog.add(progressBar, BorderLayout.CENTER);
+                dialog.pack();
+                dialog.setLocationRelativeTo(null);
+                dialog.setVisible(true);
             });
 
+            System.out.println("send help pls");
             // Create transfer record in database
-            FileTransferRepository.createFileTransfer(request, filePath.toString());
+            FileTransferRepository.createFileTransfer(request, filePath.toString(), transferId);
+
+            // Accept the transfer
+            ConnectionManager.getInstance()
+                    .sendMessage(new FileTransferUploadResponse(true, request.getFileName(), transferId));
 
         } catch (IOException | SQLException e) {
             System.err.println("Error handling incoming transfer: " + e.getMessage());
+            try {
+                ConnectionManager.getInstance()
+                        .sendMessage(new FileTransferUploadResponse(false, request.getFileName(), null));
+            } catch (Exception ex) {
+                System.err.println("Error sending error response: " + ex.getMessage());
+            }
         }
     }
 
-    private void handleTransferResponse(FileTransferResponse response) {
+    private void handleUploadResponse(FileTransferUploadResponse response) {
         if (!response.isAccepted()) {
-            System.err.println("File transfer rejected: " + response.getMessage());
+            System.err.println("File transfer rejected: " + response.getFileName());
             return;
         }
 
         String transferId = response.getTransferId();
-        File file = pendingFiles.remove(response.getMessage()); // message contains original filename
+        File file = pendingFiles.remove(response.getFileName()); // filename contains original filename
         if (file == null) {
-            System.err.println("File not found for transfer: " + response.getMessage());
+            System.err.println("File not found for transfer: " + response.getFileName());
             return;
         }
 
@@ -130,7 +216,7 @@ public class FileTransferHandler implements ResponseHandler {
         progressBars.put(transferId, progressBar);
 
         SwingUtilities.invokeLater(() -> {
-            JOptionPane.showMessageDialog(null, progressBar, "File Transfer Progress", JOptionPane.PLAIN_MESSAGE);
+            JOptionPane.showMessageDialog(null, progressBar, "File Upload Progress", JOptionPane.PLAIN_MESSAGE);
         });
 
         // Start sending file chunks in a background thread
@@ -175,6 +261,78 @@ public class FileTransferHandler implements ResponseHandler {
         }).start();
     }
 
+    // New methods for handling downloads
+    private void handleDownloadRequest(FileTransferDownloadRequest request) {
+        // Client shouldn't receive download requests
+        System.err.println("Received unexpected download request: " + request.getFileName());
+    }
+
+    private void handleDownloadResponse(FileTransferDownloadResponse response) {
+        if (!response.isAccepted()) {
+            System.err.println("File download rejected: " + response.getFileName());
+            return;
+        }
+
+        String transferId = response.getTransferId();
+        String fileName = response.getFileName();
+
+        // Create file in download directory
+        try {
+            Path filePath = this.downloadDirectory.resolve(fileName);
+
+            // Check if file already exists and add a number if it does
+            int counter = 1;
+            String baseName = fileName;
+            String extension = "";
+            int dotIndex = fileName.lastIndexOf('.');
+            if (dotIndex > 0) {
+                baseName = fileName.substring(0, dotIndex);
+                extension = fileName.substring(dotIndex);
+            }
+
+            while (Files.exists(filePath)) {
+                fileName = baseName + " (" + counter + ")" + extension;
+                filePath = this.downloadDirectory.resolve(fileName);
+                counter++;
+            }
+
+            System.out.println("Creating download file at: " + filePath.toAbsolutePath());
+            FileOutputStream fos = new FileOutputStream(filePath.toFile());
+            fileStreams.put(transferId, fos);
+
+            // Create progress bar
+            ThemedProgressBar progressBar = new ThemedProgressBar();
+            progressBar.setMaximum(100);
+            progressBar.setString(fileName);
+            progressBars.put(transferId, progressBar);
+
+            // Show progress bar in a dialog
+            SwingUtilities.invokeLater(() -> {
+                JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(null), "Download Progress",
+                        false);
+                dialog.setLayout(new BorderLayout());
+                dialog.add(progressBar, BorderLayout.CENTER);
+                dialog.pack();
+                dialog.setLocationRelativeTo(null);
+                dialog.setVisible(true);
+            });
+
+            // Create transfer record in database
+            FileTransferRequest dummyRequest = new FileTransferRequest(
+                    fileName,
+                    response.getFileSize(),
+                    0, // No sender for download
+                    0, // No room for download
+                    false,
+                    authHandler.getUser().getId());
+
+            FileTransferRepository.createFileTransfer(dummyRequest, filePath.toString(), transferId);
+
+        } catch (IOException | SQLException e) {
+            System.err.println("Error preparing for download: " + e.getMessage());
+        }
+    }
+
     private void handleTransferProgress(FileTransferProgress progress) {
         ThemedProgressBar progressBar = progressBars.get(progress.getFileName());
         if (progressBar != null) {
@@ -191,9 +349,33 @@ public class FileTransferHandler implements ResponseHandler {
             if (fos != null) {
                 fos.write(chunk.getData());
                 fos.flush();
+            } else {
+                System.err.println("No file stream found for transfer: " + chunk.getTransferId());
+                // Try to get the file path from the database
+                try {
+                    String filePath = FileTransferRepository.getFilePath(chunk.getTransferId());
+                    if (filePath != null) {
+                        Path path = Paths.get(filePath);
+                        if (Files.exists(path)) {
+                            // Create a new file stream
+                            FileOutputStream newFos = new FileOutputStream(path.toFile(), true);
+                            fileStreams.put(chunk.getTransferId(), newFos);
+                            newFos.write(chunk.getData());
+                            newFos.flush();
+                        }
+                    }
+                } catch (SQLException e) {
+                    System.err.println("Error getting file path from database: " + e.getMessage());
+                }
             }
         } catch (IOException e) {
             System.err.println("Error writing file chunk: " + e.getMessage());
+            try {
+                ConnectionManager.getInstance()
+                        .sendMessage(new FileTransferError(chunk.getTransferId(), e.getMessage()));
+            } catch (Exception ex) {
+                System.err.println("Error sending error message: " + ex.getMessage());
+            }
         }
     }
 
@@ -209,6 +391,12 @@ public class FileTransferHandler implements ResponseHandler {
                 SwingUtilities.invokeLater(() -> {
                     progressBar.setValue(100);
                     progressBar.setString("Transfer complete");
+
+                    // Show completion dialog with file location
+                    JOptionPane.showMessageDialog(null,
+                            "File download complete!\nSaved to: " + downloadDirectory,
+                            "Download Complete",
+                            JOptionPane.INFORMATION_MESSAGE);
                 });
             }
 

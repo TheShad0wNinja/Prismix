@@ -42,6 +42,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         chatPanel = new ChatPanel();
         c.gridx = 0;
         c.gridy = 0;
+        c.gridwidth = 1;
         c.weightx = 1.0;
         c.weighty = 1.0;
         c.fill = GridBagConstraints.BOTH;
@@ -76,8 +77,13 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
 
+        JButton downloadButton = new JButton("Download");
+        downloadButton.setPreferredSize(new Dimension(90, 30));
+        downloadButton.addActionListener(e -> showFileListDialog());
+        buttonPanel.add(downloadButton);
+
         JButton fileButton = new JButton("Upload");
-        fileButton.setPreferredSize(new Dimension(30, 30));
+        fileButton.setPreferredSize(new Dimension(80, 30));
         fileButton.addActionListener(e -> {
             ApplicationContext.getFileTransferHandler().selectAndSendFileToRoom(room.getId());
         });
@@ -118,8 +124,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                 room.getId(),
                 content,
                 false,
-                Timestamp.valueOf(LocalDateTime.now())
-        );
+                Timestamp.valueOf(LocalDateTime.now()));
 
         try {
             // Send the message using the client's message handler
@@ -143,7 +148,8 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
 
                 for (User user : users) {
                     JPanel itemPanel = new ThemedPanel(Variant.BACKGROUND);
-                    itemPanel.setMaximumSize(new Dimension(USERS_PANEL_WIDTH, itemPanel.getPreferredSize().height + 10));
+                    itemPanel
+                            .setMaximumSize(new Dimension(USERS_PANEL_WIDTH, itemPanel.getPreferredSize().height + 10));
                     itemPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 5));
 
                     JLabel icon = new ThemedIcon(user.getAvatar(), AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.CIRCLE);
@@ -154,7 +160,8 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                         username = username.substring(0, MAX_USERNAME_LENGTH - 3) + "...";
                     }
 
-                    ThemedLabel usernameLabel = new ThemedLabel(username, ThemedLabel.Size.SMALLER, ThemedLabel.Variant.BACKGROUND);
+                    ThemedLabel usernameLabel = new ThemedLabel(username, ThemedLabel.Size.SMALLER,
+                            ThemedLabel.Variant.BACKGROUND);
                     usernameLabel.setToolTipText(user.getDisplayName());
                     itemPanel.add(usernameLabel);
 
@@ -214,5 +221,23 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
     public void removeNotify() {
         super.removeNotify();
         ApplicationContext.getEventBus().unsubscribe(this);
+    }
+
+    private void showFileListDialog() {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Available Files", false);
+        dialog.setLayout(new BorderLayout());
+
+        FileListPanel fileListPanel = new FileListPanel();
+        dialog.add(fileListPanel, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton closeButton = new JButton("Close");
+        closeButton.addActionListener(e -> dialog.dispose());
+        buttonPanel.add(closeButton);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setSize(400, 500);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 }

@@ -23,6 +23,8 @@ public interface NetworkMessage extends Serializable {
 
         // File Transfer Messages
         FILE_TRANSFER_REQUEST, FILE_TRANSFER_RESPONSE,
+        FILE_TRANSFER_UPLOAD_REQUEST, FILE_TRANSFER_UPLOAD_RESPONSE,
+        FILE_TRANSFER_DOWNLOAD_REQUEST, FILE_TRANSFER_DOWNLOAD_RESPONSE,
         FILE_TRANSFER_PROGRESS,
         FILE_TRANSFER_CHUNK, FILE_TRANSFER_COMPLETE,
         FILE_TRANSFER_ERROR,
@@ -60,6 +62,15 @@ public interface NetworkMessage extends Serializable {
 //        CALL_REQUEST, // Client requesting a call
 
         // Add other message types as needed for your protocol
+        AUTH_REQUEST,
+        AUTH_RESPONSE,
+        CHAT_MESSAGE,
+        ROOM_CREATE,
+        ROOM_JOIN,
+        ROOM_LEAVE,
+        ROOM_LIST,
+        USER_LIST,
+        ERROR
     }
 
     MessageType getMessageType();

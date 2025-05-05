@@ -25,7 +25,7 @@ public class ServerDatabaseManager extends DatabaseManager {
     @Override
     protected void initDatabase() {
         try (Connection conn = getDriverConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
             String createUserTableSQL = """
                     CREATE TABLE IF NOT EXISTS user (

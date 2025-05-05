@@ -24,7 +24,7 @@ public class ClientDatabaseManager extends DatabaseManager {
     protected void initDatabase() {
         System.out.println("Initializing database");
         try (Connection conn = getDriverConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
             String messageTableSql = """
                     CREATE TABLE IF NOT EXISTS message (
