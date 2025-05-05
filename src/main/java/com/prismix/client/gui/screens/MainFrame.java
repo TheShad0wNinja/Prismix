@@ -6,6 +6,7 @@ import com.prismix.client.core.EventListener;
 import com.prismix.client.gui.layout.BaseLayout;
 import com.prismix.client.gui.layout.ChatLayout;
 import com.prismix.common.model.Room;
+import com.prismix.common.model.User;
 
 import javax.swing.*;
 import java.awt.*;

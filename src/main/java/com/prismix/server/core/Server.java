@@ -5,6 +5,7 @@ import com.prismix.server.handlers.AuthHandler;
 import com.prismix.server.handlers.MessageHandler;
 import com.prismix.server.handlers.RoomHandler;
 import com.prismix.server.handlers.VideoChatHandler;
+import com.prismix.server.handlers.FileTransferHandler;
 import com.prismix.server.utils.ServerDatabaseManager;
 
 import java.io.IOException;
@@ -30,6 +31,7 @@ public class Server {
         new RoomHandler(requestHandlers);
         new MessageHandler(userHandler, requestHandlers);
         new VideoChatHandler(userHandler, requestHandlers);
+        new FileTransferHandler(requestHandlers);
 
         // Add shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));

@@ -21,6 +21,12 @@ public interface NetworkMessage extends Serializable {
         VIDEO_CALL_OFFER, VIDEO_CALL_ANSWER,
         VIDEO_CALL_END,
 
+        // File Transfer Messages
+        FILE_TRANSFER_REQUEST, FILE_TRANSFER_RESPONSE,
+        FILE_TRANSFER_PROGRESS,
+        FILE_TRANSFER_CHUNK, FILE_TRANSFER_COMPLETE,
+        FILE_TRANSFER_ERROR,
+
 
 
 //        SEND_FILE_MESSAGE,

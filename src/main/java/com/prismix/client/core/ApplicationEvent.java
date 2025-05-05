@@ -10,6 +10,8 @@ public record ApplicationEvent(Type type, Object data) {
         END_CALL,
         MESSAGE,
         MESSAGES,
-        THEME_CHANGED
+        THEME_CHANGED,
+        FILE_TRANSFER_COMPLETE,
+        FILE_TRANSFER_ERROR
     }
 }

@@ -14,6 +14,7 @@ public class ApplicationContext {
     private final RoomHandler roomHandler;
     private final MessageHandler messageHandler;
     private final VideoChatHandler videoChatHandler;
+    private final FileTransferHandler fileTransferHandler;
     private final EventBus eventBus;
     private final HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandlers;
 
@@ -25,6 +26,7 @@ public class ApplicationContext {
         this.roomHandler = new RoomHandler(eventBus, authHandler, responseHandlers);
         this.messageHandler = new MessageHandler(eventBus, authHandler, responseHandlers);
         this.videoChatHandler = new VideoChatHandler(eventBus, authHandler, responseHandlers);
+        this.fileTransferHandler = new FileTransferHandler(eventBus, authHandler, responseHandlers);
     }
 
     private static ApplicationContext getInstance() {
@@ -57,8 +59,12 @@ public class ApplicationContext {
     public static RoomHandler getRoomHandler() {
         return getInstance().roomHandler;
     }
-    
+
     public static VideoChatHandler getVideoChatHandler() {
         return getInstance().videoChatHandler;
+    }
+
+    public static FileTransferHandler getFileTransferHandler() {
+        return getInstance().fileTransferHandler;
     }
 }

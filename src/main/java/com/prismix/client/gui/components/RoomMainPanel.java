@@ -7,9 +7,11 @@ import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.components.themed.ThemedTextField;
+import com.prismix.client.utils.AvatarDisplayHelper;
 import com.prismix.common.model.Message;
 import com.prismix.common.model.Room;
 import com.prismix.common.model.User;
+import com.prismix.common.model.network.NetworkMessage;
 
 import javax.swing.*;
 import java.awt.*;
@@ -72,10 +74,21 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         messageInput.setPreferredSize(new Dimension(0, 30));
         messageInputPanel.add(messageInput, BorderLayout.CENTER);
 
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+
+        JButton fileButton = new JButton("Upload");
+        fileButton.setPreferredSize(new Dimension(30, 30));
+        fileButton.addActionListener(e -> {
+            ApplicationContext.getFileTransferHandler().selectAndSendFileToRoom(room.getId());
+        });
+        buttonPanel.add(fileButton);
+
         JButton sendButton = new JButton("Send");
         sendButton.setPreferredSize(new Dimension(80, 30));
         sendButton.addActionListener(e -> sendMessage(messageInput));
-        messageInputPanel.add(sendButton, BorderLayout.EAST);
+        buttonPanel.add(sendButton);
+
+        messageInputPanel.add(buttonPanel, BorderLayout.EAST);
 
         c.gridx = 0;
         c.gridy = 1;
