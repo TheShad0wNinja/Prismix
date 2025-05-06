@@ -32,7 +32,7 @@ public class UserHandler implements RequestHandler {
         switch (message.getMessageType()) {
             case SIGNUP_REQUEST -> {
                 SignupRequest msg = (SignupRequest) message;
-                User user = UserManager.registerUser(msg.username(), msg.username(), null);
+                User user = UserManager.registerUser(msg.username(), msg.displayName(), msg.avatar());
                 SignupResponse response;
                 if (user == null) {
                     response = new SignupResponse(false, "Invalid ", null);

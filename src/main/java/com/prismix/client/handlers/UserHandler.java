@@ -72,7 +72,7 @@ public class UserHandler implements ResponseHandler {
                     ));
                 }
             }
-            case SIGNUP_REQUEST -> {
+            case SIGNUP_RESPONSE -> {
                 SignupResponse res = (SignupResponse) message;
                 if (res.status()) {
                     user = res.user();

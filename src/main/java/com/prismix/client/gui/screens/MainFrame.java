@@ -106,7 +106,8 @@ public class MainFrame extends JFrame implements EventListener {
 
     private void switchScreen(AppScreen screen) {
         JPanel newScreen = switch (screen)  {
-            case LOGIN_SCREEN, SIGNUP_SCREEN -> new LoginScreen();
+            case LOGIN_SCREEN -> new LoginScreen();
+            case SIGNUP_SCREEN -> new SignupScreen();
             case CHAT_SCREEN -> new ChatScreen();
             case SETTING_SCREEN -> null;
         };
