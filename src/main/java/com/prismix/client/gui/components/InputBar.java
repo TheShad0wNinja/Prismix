@@ -4,7 +4,7 @@ import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
 import com.prismix.client.gui.components.themed.ThemedButton;
 import com.prismix.client.gui.components.themed.ThemedPanel;
-import com.prismix.client.gui.components.themed.ThemedTextField;
+import com.prismix.client.gui.components.themed.ThemedTextArea;
 import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.common.model.Message;
 
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class InputBar extends ThemedPanel implements EventListener {
-    private final JTextField messageInput;
+    private final ThemedTextArea messageInput;
     private final boolean isDirect;
     private static final AtomicLong messageSerial = new AtomicLong(0);
 
@@ -26,9 +26,22 @@ public class InputBar extends ThemedPanel implements EventListener {
         setLayout(new BorderLayout(5, 5));
         setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 
-        messageInput = new ThemedTextField("", this::sendMessage);
-        messageInput.setPreferredSize(new Dimension(0, 30));
-        add(messageInput, BorderLayout.CENTER);
+        // Create a scrollable message input area for wrapped text
+        messageInput = new ThemedTextArea("", this::sendMessage);
+        
+        // Limit initial height but allow expansion
+        messageInput.setRows(1);
+        
+        // Create a scroll pane to handle overflow
+        JScrollPane scrollPane = new JScrollPane(messageInput);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setBorder(null); // Remove the scroll pane border
+        
+        // Set preferred size for the scroll pane
+        scrollPane.setPreferredSize(new Dimension(0, 35));
+        
+        add(scrollPane, BorderLayout.CENTER);
 
         JPanel inputsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         inputsPanel.setOpaque(false);

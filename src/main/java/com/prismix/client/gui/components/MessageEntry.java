@@ -10,6 +10,7 @@ import com.prismix.common.model.Message;
 import com.prismix.common.model.User;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.time.format.DateTimeFormatter;
 
@@ -77,11 +78,34 @@ public class MessageEntry extends ThemedPanel {
 
             contentPanel.add(filePanel);
         } else {
-            // Regular text message
-            JLabel contentLabel = new ThemedLabel(message.getContent(), 18);
-            contentLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            contentLabel.setHorizontalAlignment(SwingConstants.LEFT);
-            contentPanel.add(contentLabel);
+            // Create a text area for message content with word wrapping
+            JTextArea messageTextArea = new JTextArea(message.getContent());
+            messageTextArea.setLineWrap(true);
+            messageTextArea.setWrapStyleWord(true);
+            messageTextArea.setEditable(false);
+            messageTextArea.setCursor(null);
+            messageTextArea.setFocusable(false);
+            messageTextArea.setOpaque(false);
+            
+            // Style to match ThemedLabel appearance
+            Font labelFont = UIManager.getFont("Label.font");
+            if (labelFont != null) {
+                messageTextArea.setFont(new Font(labelFont.getName(), labelFont.getStyle(), 18));
+            } else {
+                messageTextArea.setFont(new Font("SansSerif", Font.PLAIN, 18));
+            }
+            
+            // Match text color to ThemedLabel
+            messageTextArea.setForeground(getForeground());
+            
+            // Remove border
+            messageTextArea.setBorder(new EmptyBorder(0, 0, 0, 0));
+            
+            // Set alignment
+            messageTextArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+            
+            // Add to content panel
+            contentPanel.add(messageTextArea);
         }
 
         c.gridx = 1;

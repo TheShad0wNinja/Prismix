@@ -17,7 +17,7 @@ public class ChatHeader extends ThemedPanel {
     public ChatHeader(String title, byte[] avatar) {
         super(Variant.SURFACE_ALT);
 
-        setLayout(new FlowLayout(FlowLayout.CENTER, 5, 15));
+        setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 
         if (avatar != null) {
             JLabel icon = new ThemedIcon(avatar, AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.ROUNDED);
