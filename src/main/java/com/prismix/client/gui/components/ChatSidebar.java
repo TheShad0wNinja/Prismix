@@ -17,6 +17,7 @@ public class ChatSidebar extends ThemedPanel implements EventListener {
     private JPanel roomsPanel; // Panel to hold individual room entries
     private JScrollPane scrollPane;
     private ThemedButton createRoomButton;
+    private ThemedButton joinRoomButton;
     private ThemedButton privateMessageBtn;
 
     public ChatSidebar() {
@@ -26,7 +27,9 @@ public class ChatSidebar extends ThemedPanel implements EventListener {
 
         privateMessageBtn.addActionListener(e -> ApplicationContext.getEventBus().publish(new ApplicationEvent(ApplicationEvent.Type.DIRECT_SCREEN_SELECTED)));
 
-        createRoomButton.addActionListener(e -> System.out.println("CReATE"));
+        createRoomButton.addActionListener(e -> showCreateRoomDialog());
+        
+        joinRoomButton.addActionListener(e -> showJoinRoomDialog());
 
         ApplicationContext.getEventBus().subscribe(this);
         ApplicationContext.getRoomHandler().updateRooms();
@@ -44,11 +47,33 @@ public class ChatSidebar extends ThemedPanel implements EventListener {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
         privateMessageBtn = new ThemedButton("Direct Messages", ThemedButton.Variant.SECONDARY);
-        createRoomButton = new ThemedButton("Create new Room", ThemedButton.Variant.SECONDARY);
+        createRoomButton = new ThemedButton("Create Room", ThemedButton.Variant.SECONDARY);
+        joinRoomButton = new ThemedButton("Join Room", ThemedButton.Variant.SECONDARY);
 
         add(scrollPane, BorderLayout.CENTER);
 
         applyTheme(ThemeManager.getCurrentTheme());
+    }
+    
+    private void showCreateRoomDialog() {
+        Window window = SwingUtilities.getWindowAncestor(this);
+        Frame parent = window instanceof Frame ? (Frame) window : null;
+        
+        CreateRoomDialog dialog = new CreateRoomDialog(parent);
+        dialog.setVisible(true);
+        
+        if (dialog.isConfirmed()) {
+            String roomName = dialog.getRoomName();
+            byte[] avatarData = dialog.getAvatarData();
+            
+            // Call the RoomHandler to create the room
+            ApplicationContext.getRoomHandler().createRoom(roomName, avatarData);
+        }
+    }
+    
+    private void showJoinRoomDialog() {
+        RoomSearchDialog dialog = new RoomSearchDialog();
+        dialog.setVisible(true);
     }
 
     public void updateRoomList(ArrayList<Room> rooms) {
@@ -61,6 +86,8 @@ public class ChatSidebar extends ThemedPanel implements EventListener {
         }
         roomsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         roomsPanel.add(createRoomButton);
+        roomsPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        roomsPanel.add(joinRoomButton);
         roomsPanel.add(Box.createVerticalGlue());
 
         roomsPanel.revalidate();

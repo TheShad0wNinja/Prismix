@@ -20,6 +20,8 @@ public record ApplicationEvent(Type type, Object data) {
         MESSAGES,
         THEME_CHANGED,
         FILE_TRANSFER_COMPLETE,
-        FILE_TRANSFER_ERROR
+        FILE_TRANSFER_ERROR,
+        ERROR,
+        ALL_ROOMS_UPDATED
     }
 }
