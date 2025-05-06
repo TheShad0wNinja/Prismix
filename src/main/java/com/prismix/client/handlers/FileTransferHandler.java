@@ -25,6 +25,9 @@ public class FileTransferHandler implements ResponseHandler {
     private final Map<String, ThemedProgressBar> progressBars;
     private final Path downloadDirectory;
     private static final int CHUNK_SIZE = 8192; // 8KB chunks
+    private static final String HEADER = "FILE";
+    private static final String TRAILER = "END";
+    private static final int MAX_PACKET_SIZE = 1200; // Lower to avoid fragmentation
     private final Map<String, File> pendingFiles;
     private final Map<String, Integer> chunkRetries = new HashMap<>();
     private static final int MAX_RETRIES = 3;
@@ -220,7 +223,7 @@ public class FileTransferHandler implements ResponseHandler {
         }
 
         String transferId = response.getTransferId();
-        File file = pendingFiles.remove(response.getFileName()); // filename contains original filename
+        File file = pendingFiles.remove(response.getFileName());
         if (file == null) {
             System.err.println("File not found for transfer: " + response.getFileName());
             return;
@@ -245,6 +248,14 @@ public class FileTransferHandler implements ResponseHandler {
                 int bytesRead;
                 long totalBytesRead = 0;
 
+                // Send header with file info
+                String header = String.format("%s:%s:%d:%d", HEADER, file.getName(), file.length(), totalChunks);
+                ConnectionManager.getInstance().sendMessage(new FileTransferChunk(
+                        transferId,
+                        header.getBytes(),
+                        -1, // Special chunk number for header
+                        totalChunks));
+
                 while ((bytesRead = fis.read(buffer)) != -1) {
                     // Create a new buffer with exact size to avoid any buffer issues
                     byte[] chunk = new byte[bytesRead];
@@ -255,14 +266,33 @@ public class FileTransferHandler implements ResponseHandler {
                         throw new IOException("Chunk size mismatch: expected " + bytesRead + ", got " + chunk.length);
                     }
 
-                    FileTransferChunk chunkMessage = new FileTransferChunk(
-                            transferId,
-                            chunk,
-                            chunkNumber,
-                            totalChunks);
+                    // Split large chunks into smaller packets if needed
+                    int offset = 0;
+                    while (offset < bytesRead) {
+                        int packetSize = Math.min(MAX_PACKET_SIZE - 8, bytesRead - offset);
+                        byte[] packet = new byte[packetSize + 8];
 
-                    // Send chunk and wait for acknowledgment
-                    ConnectionManager.getInstance().sendMessage(chunkMessage);
+                        // Add packet header (chunk ID + sub-chunk ID)
+                        byte[] packetHeader = String.format("%04d%04d", chunkNumber, offset / (MAX_PACKET_SIZE - 8))
+                                .getBytes();
+                        System.arraycopy(packetHeader, 0, packet, 0, 8);
+                        System.arraycopy(chunk, offset, packet, 8, packetSize);
+
+                        FileTransferChunk chunkMessage = new FileTransferChunk(
+                                transferId,
+                                packet,
+                                chunkNumber,
+                                totalChunks);
+
+                        // Send chunk and wait for acknowledgment
+                        ConnectionManager.getInstance().sendMessage(chunkMessage);
+
+                        // Add a small delay between packets to prevent overwhelming the network
+                        Thread.sleep(5);
+
+                        offset += packetSize;
+                    }
+
                     totalBytesRead += bytesRead;
 
                     // Update progress bar
@@ -275,11 +305,16 @@ public class FileTransferHandler implements ResponseHandler {
                         });
                     }
 
-                    // Add a small delay between chunks to prevent overwhelming the network
-                    Thread.sleep(10);
-
                     chunkNumber++;
                 }
+
+                // Send end trailer
+                String trailer = String.format("%s:%s:%d", TRAILER, file.getName(), totalBytesRead);
+                ConnectionManager.getInstance().sendMessage(new FileTransferChunk(
+                        transferId,
+                        trailer.getBytes(),
+                        -2, // Special chunk number for trailer
+                        totalChunks));
 
                 // Verify total bytes read matches file size
                 if (totalBytesRead != file.length()) {
@@ -388,6 +423,41 @@ public class FileTransferHandler implements ResponseHandler {
 
     private void handleTransferChunk(FileTransferChunk chunk) {
         try {
+            // Handle special chunks (header and trailer)
+            if (chunk.getChunkNumber() < 0) {
+                String data = new String(chunk.getData());
+                if (data.startsWith(HEADER)) {
+                    // Process header
+                    String[] parts = data.split(":");
+                    if (parts.length >= 4) {
+                        String fileName = parts[1];
+                        long fileSize = Long.parseLong(parts[2]);
+                        int totalChunks = Integer.parseInt(parts[3]);
+                        System.out.println("Received file header: " + fileName + ", size: " + fileSize + ", chunks: "
+                                + totalChunks);
+                    }
+                    return;
+                } else if (data.startsWith(TRAILER)) {
+                    // Process trailer
+                    String[] parts = data.split(":");
+                    if (parts.length >= 3) {
+                        String fileName = parts[1];
+                        long totalBytes = Long.parseLong(parts[2]);
+                        System.out.println("Received file trailer: " + fileName + ", total bytes: " + totalBytes);
+
+                        // Close the file stream
+                        FileOutputStream stream = fileStreams.remove(chunk.getTransferId());
+                        if (stream != null) {
+                            stream.close();
+                        }
+
+                        // Clean up retry counter
+                        chunkRetries.remove(chunk.getTransferId());
+                    }
+                    return;
+                }
+            }
+
             // Verify checksum before writing
             if (!chunk.verifyChecksum()) {
                 System.err.println("Checksum verification failed for chunk " + chunk.getChunkNumber());
@@ -416,9 +486,24 @@ public class FileTransferHandler implements ResponseHandler {
             // Reset retry count on successful chunk
             chunkRetries.remove(chunk.getTransferId());
 
+            // Extract sub-chunk information from header
+            byte[] header = new byte[8];
+            System.arraycopy(chunk.getData(), 0, header, 0, 8);
+            String headerStr = new String(header);
+            int chunkNumber = Integer.parseInt(headerStr.substring(0, 4));
+            int subChunkNumber = Integer.parseInt(headerStr.substring(4, 8));
+
+            // Get the actual data (excluding header)
+            byte[] data = new byte[chunk.getData().length - 8];
+            System.arraycopy(chunk.getData(), 8, data, 0, data.length);
+
             FileOutputStream fos = fileStreams.get(chunk.getTransferId());
             if (fos != null) {
-                fos.write(chunk.getData());
+                // If this is the first sub-chunk of a new chunk, seek to the correct position
+                if (subChunkNumber == 0) {
+                    fos.getChannel().position(chunkNumber * CHUNK_SIZE);
+                }
+                fos.write(data);
                 fos.flush();
             } else {
                 System.err.println("No file stream found for transfer: " + chunk.getTransferId());
@@ -431,7 +516,10 @@ public class FileTransferHandler implements ResponseHandler {
                             // Create a new file stream
                             FileOutputStream newFos = new FileOutputStream(path.toFile(), true);
                             fileStreams.put(chunk.getTransferId(), newFos);
-                            newFos.write(chunk.getData());
+                            if (subChunkNumber == 0) {
+                                newFos.getChannel().position(chunkNumber * CHUNK_SIZE);
+                            }
+                            newFos.write(data);
                             newFos.flush();
                         } else {
                             throw new IOException("File path exists in database but file not found: " + filePath);
@@ -445,16 +533,6 @@ public class FileTransferHandler implements ResponseHandler {
                 }
             }
 
-            // If this is the last chunk, close the file stream
-            if (chunk.getChunkNumber() == chunk.getTotalChunks() - 1) {
-                FileOutputStream stream = fileStreams.get(chunk.getTransferId());
-                if (stream != null) {
-                    stream.close();
-                    fileStreams.remove(chunk.getTransferId());
-                }
-                // Clean up retry counter
-                chunkRetries.remove(chunk.getTransferId());
-            }
         } catch (IOException e) {
             System.err.println("Error writing file chunk: " + e.getMessage());
             try {

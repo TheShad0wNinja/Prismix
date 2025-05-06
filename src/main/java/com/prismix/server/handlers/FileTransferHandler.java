@@ -21,6 +21,9 @@ public class FileTransferHandler implements RequestHandler {
     private final Map<String, Long> transferredBytes;
     private final Map<String, ClientHandler> recipients;
     private final Path uploadDirectory;
+    private static final String HEADER = "FILE";
+    private static final String TRAILER = "END";
+    private static final int MAX_PACKET_SIZE = 1200; // Lower to avoid fragmentation
 
     public FileTransferHandler(Map<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
         this.transferPaths = new HashMap<>();
@@ -213,99 +216,99 @@ public class FileTransferHandler implements RequestHandler {
     }
 
     private void handleTransferChunk(FileTransferChunk chunk, ClientHandler client) {
-        String filePath = transferPaths.get(chunk.getTransferId());
-        if (filePath == null) {
-            try {
-                filePath = FileTransferRepository.getFilePath(chunk.getTransferId());
-                if (filePath == null) {
-                    client.sendMessage(new FileTransferError(chunk.getTransferId(), "Transfer not found"));
+        try {
+            // Handle special chunks (header and trailer)
+            if (chunk.getChunkNumber() < 0) {
+                String data = new String(chunk.getData());
+                if (data.startsWith(HEADER)) {
+                    // Process header
+                    String[] parts = data.split(":");
+                    if (parts.length >= 4) {
+                        String fileName = parts[1];
+                        long fileSize = Long.parseLong(parts[2]);
+                        int totalChunks = Integer.parseInt(parts[3]);
+                        System.out.println("Received file header: " + fileName + ", size: " + fileSize + ", chunks: "
+                                + totalChunks);
+                    }
+                    // Forward header to recipient
+                    ClientHandler recipient = recipients.get(chunk.getTransferId());
+                    if (recipient != null && recipient.isConnected()) {
+                        recipient.sendMessage(chunk);
+                    }
+                    return;
+                } else if (data.startsWith(TRAILER)) {
+                    // Process trailer
+                    String[] parts = data.split(":");
+                    if (parts.length >= 3) {
+                        String fileName = parts[1];
+                        long totalBytes = Long.parseLong(parts[2]);
+                        System.out.println("Received file trailer: " + fileName + ", total bytes: " + totalBytes);
+                    }
+                    // Forward trailer to recipient
+                    ClientHandler recipient = recipients.get(chunk.getTransferId());
+                    if (recipient != null && recipient.isConnected()) {
+                        recipient.sendMessage(chunk);
+                    }
                     return;
                 }
-                transferPaths.put(chunk.getTransferId(), filePath);
-            } catch (SQLException e) {
-                System.err.println("Database error: " + e.getMessage());
-                client.sendMessage(new FileTransferError(chunk.getTransferId(), "Internal server error"));
-                return;
             }
-        }
 
-        // Verify checksum before writing
-        if (!chunk.verifyChecksum()) {
-            System.err.println("Checksum verification failed for chunk " + chunk.getChunkNumber());
-            // Request retry of the chunk
-            client.sendMessage(new FileTransferError(chunk.getTransferId(),
-                    "Data corruption detected in chunk " + chunk.getChunkNumber() + ". Please retry."));
-            return;
-        }
+            // Extract sub-chunk information from header
+            byte[] header = new byte[8];
+            System.arraycopy(chunk.getData(), 0, header, 0, 8);
+            String headerStr = new String(header);
+            int chunkNumber = Integer.parseInt(headerStr.substring(0, 4));
+            int subChunkNumber = Integer.parseInt(headerStr.substring(4, 8));
 
-        try {
+            // Get the actual data (excluding header)
+            byte[] data = new byte[chunk.getData().length - 8];
+            System.arraycopy(chunk.getData(), 8, data, 0, data.length);
+
             // Create parent directories if they don't exist
+            String filePath = transferPaths.get(chunk.getTransferId());
+            if (filePath == null) {
+                throw new IOException("No file path found for transfer: " + chunk.getTransferId());
+            }
+
             Path path = Paths.get(filePath);
             Files.createDirectories(path.getParent());
 
             // Write chunk with atomic operation
-            Files.write(path, chunk.getData(),
-                    chunk.getChunkNumber() == 0
-                            ? new StandardOpenOption[] { StandardOpenOption.CREATE,
-                                    StandardOpenOption.TRUNCATE_EXISTING }
-                            : new StandardOpenOption[] { StandardOpenOption.APPEND });
+            if (subChunkNumber == 0) {
+                // For first sub-chunk of a chunk, create/truncate file
+                Files.write(path, data,
+                        chunkNumber == 0
+                                ? new StandardOpenOption[] { StandardOpenOption.CREATE,
+                                        StandardOpenOption.TRUNCATE_EXISTING }
+                                : new StandardOpenOption[] { StandardOpenOption.APPEND });
+            } else {
+                // For subsequent sub-chunks, append to file
+                Files.write(path, data, StandardOpenOption.APPEND);
+            }
 
             // Update progress
             long totalBytes = transferSizes.getOrDefault(chunk.getTransferId(), 0L);
             long transferred = transferredBytes.compute(chunk.getTransferId(),
-                    (id, bytes) -> (bytes == null ? 0L : bytes) + chunk.getData().length);
+                    (id, bytes) -> (bytes == null ? 0L : bytes) + data.length);
             int progress = totalBytes > 0 ? (int) ((transferred * 100) / totalBytes) : 0;
 
-            // Send progress update to recipient
+            // Forward chunk to recipient
             ClientHandler recipient = recipients.get(chunk.getTransferId());
             if (recipient != null && recipient.isConnected()) {
-                recipient.sendMessage(new FileTransferProgress(
-                        chunk.getTransferId(),
-                        progress,
-                        transferred,
-                        totalBytes));
+                recipient.sendMessage(chunk);
             }
 
-            if (chunk.getChunkNumber() == chunk.getTotalChunks() - 1) {
-                // Verify final file size
-                long actualSize = Files.size(path);
-                if (actualSize != totalBytes) {
-                    System.err.println("File size mismatch: expected " + totalBytes + ", got " + actualSize);
-                    // Delete the incomplete file
-                    try {
-                        Files.deleteIfExists(path);
-                    } catch (IOException ex) {
-                        System.err.println("Failed to delete incomplete file: " + ex.getMessage());
-                    }
-                    client.sendMessage(new FileTransferError(chunk.getTransferId(),
-                            "File size verification failed. Transfer incomplete. Please retry."));
-                    return;
-                }
+            // Send progress update to sender
+            client.sendMessage(new FileTransferProgress(
+                    chunk.getTransferId(),
+                    progress,
+                    transferred,
+                    totalBytes));
 
-                try {
-                    FileTransferRepository.updateFileTransferStatus(chunk.getTransferId(), "COMPLETED");
-                } catch (SQLException e) {
-                    System.err.println("Failed to update transfer status: " + e.getMessage());
-                    // Continue with cleanup even if database update fails
-                }
-
-                // Clean up
-                transferPaths.remove(chunk.getTransferId());
-                transferSizes.remove(chunk.getTransferId());
-                transferredBytes.remove(chunk.getTransferId());
-                recipients.remove(chunk.getTransferId());
-
-                client.sendMessage(new FileTransferComplete(chunk.getTransferId(), null, 0, 0, 0, false, 0));
-            }
         } catch (IOException e) {
-            System.err.println("Error writing file chunk: " + e.getMessage());
-            client.sendMessage(new FileTransferError(chunk.getTransferId(),
-                    "Error writing file: " + e.getMessage() + ". Please retry."));
-            try {
-                FileTransferRepository.updateFileTransferStatus(chunk.getTransferId(), "FAILED");
-            } catch (SQLException ex) {
-                System.err.println("Failed to update transfer status: " + ex.getMessage());
-            }
+            System.err.println("Error handling file chunk: " + e.getMessage());
+            client.sendMessage(
+                    new FileTransferError(chunk.getTransferId(), "Error handling file chunk: " + e.getMessage()));
         }
     }
 }
