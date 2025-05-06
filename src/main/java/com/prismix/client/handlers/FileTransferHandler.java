@@ -351,13 +351,7 @@ public class FileTransferHandler implements ResponseHandler {
 
             // Show progress bar in a dialog
             SwingUtilities.invokeLater(() -> {
-                JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(null), "Download Progress",
-                        false);
-                dialog.setLayout(new BorderLayout());
-                dialog.add(progressBar, BorderLayout.CENTER);
-                dialog.pack();
-                dialog.setLocationRelativeTo(null);
-                dialog.setVisible(true);
+                JOptionPane.showMessageDialog(null, progressBar, "File Download Progress", JOptionPane.PLAIN_MESSAGE);
             });
 
             // Create transfer record in database

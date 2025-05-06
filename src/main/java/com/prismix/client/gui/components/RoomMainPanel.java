@@ -2,6 +2,7 @@ package com.prismix.client.gui.components;
 
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
+import com.prismix.client.gui.themes.ThemeManager;
 import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
@@ -183,19 +184,20 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                                         ));
                                     });
                                 });
-                                ApplicationContext.getVideoChatHandler().initiateCall(user);
                             }
 
                             @Override
                             public void mouseEntered(MouseEvent e) {
                                 super.mouseEntered(e);
-                                itemPanel.setBackground(Color.PINK);
+                                itemPanel.setBackground(ThemeManager.getCurrentTheme().getTertiaryColor());
+                                usernameLabel.setForeground(ThemeManager.getCurrentTheme().getOnTertiaryColor());
                             }
 
                             @Override
                             public void mouseExited(MouseEvent e) {
                                 super.mouseExited(e);
-                                itemPanel.setBackground(Color.WHITE);
+                                itemPanel.setBackground(ThemeManager.getCurrentTheme().getBackgroundColor());
+                                usernameLabel.setForeground(ThemeManager.getCurrentTheme().getOnBackgroundColor());
                             }
                         });
                     }
