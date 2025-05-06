@@ -12,6 +12,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.util.function.Consumer;
 
 public class ThemedTextField extends JTextField implements ThemedComponent, ThemeChangeListener {
 
@@ -25,12 +26,22 @@ public class ThemedTextField extends JTextField implements ThemedComponent, Them
     private static final int PADDING_SIZE = 5; // Inner padding
 
     public ThemedTextField() {
-        this(null);
+        this(null, null);
     }
 
     public ThemedTextField(String text) {
+        this(text, null);
+    }
+
+    public ThemedTextField(String text, Consumer<String> action) {
         super(text);
         initComponents();
+
+        if (action != null) {
+            addActionListener((_) -> {
+                action.accept(getText());
+            });
+        }
     }
 
     private void initComponents() {
@@ -51,7 +62,6 @@ public class ThemedTextField extends JTextField implements ThemedComponent, Them
             }
         });
 
-        // Apply initial theme and add listener
         applyTheme(ThemeManager.getCurrentTheme());
         ThemeManager.addThemeChangeListener(this);
     }

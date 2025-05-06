@@ -46,13 +46,12 @@ import java.util.logging.Logger;
 
 import com.github.sarxos.webcam.Webcam;
 import org.ice4j.ice.Component;
-import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.SocketClosedException;
 
 public class VideoChatHandler implements ResponseHandler, EventListener {
     private final EventBus eventBus;
-    private final AuthHandler authHandler;
+    private final UserHandler userHandler;
     private IceMediaStream videoStream;
     private Agent iceAgent;
     private DatagramSocket udpSocket;
@@ -96,9 +95,9 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     // Flag to track if we're currently initializing the call window
     private final AtomicBoolean initializingCallWindow = new AtomicBoolean(false);
 
-    public VideoChatHandler(EventBus eventBus, AuthHandler authHandler, HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandler) {
+    public VideoChatHandler(EventBus eventBus, UserHandler userHandler, HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandler) {
         this.eventBus = eventBus;
-        this.authHandler = authHandler;
+        this.userHandler = userHandler;
 
         // Register for video chat message types
         responseHandler.put(NetworkMessage.MessageType.VIDEO_CALL_REQUEST, this);
@@ -464,7 +463,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     public void initiateCall(User callee) {
         try {
             ConnectionManager.getInstance().sendMessage(
-                    new VideoCallRequest(authHandler.getUser(), callee));
+                    new VideoCallRequest(userHandler.getUser(), callee));
             pendingCalls.put(callee, true);
         } catch (IOException e) {
             System.err.println("Error initiating call: " + e.getMessage());
@@ -535,7 +534,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("Arial", Font.BOLD, 24));
 
-        String userText = "User: " + (authHandler.getUser() != null ? authHandler.getUser().getUsername() : "Unknown");
+        String userText = "User: " + (userHandler.getUser() != null ? userHandler.getUser().getUsername() : "Unknown");
         String timeText = "Time: " + timestamp;
 
         // Center text
@@ -864,7 +863,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         if (currentCallPartner != null) {
             try {
                 ConnectionManager.getInstance().sendMessage(
-                        new VideoCallEnd(authHandler.getUser(), currentCallPartner));
+                        new VideoCallEnd(userHandler.getUser(), currentCallPartner));
                 System.out.println("Sent hangup message to " + currentCallPartner.getUsername());
             } catch (IOException e) {
                 System.err.println("Error sending call end message: " + e.getMessage());

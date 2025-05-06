@@ -1,0 +1,75 @@
+package com.prismix.client.gui.components;
+
+import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.core.EventListener;
+import com.prismix.client.gui.components.themed.ThemedButton;
+import com.prismix.client.gui.components.themed.ThemedTextField;
+import com.prismix.client.handlers.ApplicationContext;
+import com.prismix.common.model.Message;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicLong;
+
+public class InputBar extends JPanel implements EventListener {
+    private final JTextField messageInput;
+    private final boolean isDirect;
+    private static final AtomicLong messageSerial = new AtomicLong(0);
+
+    public InputBar(boolean isDirect) {
+        this.isDirect = isDirect;
+
+        setLayout(new BorderLayout(5, 5));
+        setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+
+        messageInput = new ThemedTextField("", this::sendMessage);
+        messageInput.setPreferredSize(new Dimension(0, 30));
+        add(messageInput, BorderLayout.CENTER);
+
+        JButton sendButton = new ThemedButton("Send", ThemedButton.Variant.PRIMARY);
+        sendButton.setPreferredSize(new Dimension(80, 30));
+        add(sendButton, BorderLayout.EAST);
+
+        ApplicationContext.getEventBus().subscribe(this);
+        sendButton.addActionListener(_ -> {
+            sendMessage(messageInput.getText());
+            messageInput.setText("");
+        });
+    }
+
+    private void sendMessage(String message) {
+        String content = message.trim();
+        if (content.isEmpty()) {
+            return;
+        }
+
+        // Create message with unique serial number
+        long messageId = messageSerial.incrementAndGet();
+        Message newMsg = new Message(
+                (int) messageId,
+                ApplicationContext.getUserHandler().getUser().getId(),
+                isDirect ? ApplicationContext.getMessageHandler().getCurrentDirectUser().getId() : -1,
+                isDirect ? -1 : ApplicationContext.getRoomHandler().getCurrentRoom().getId(),
+                content,
+                isDirect,
+                Timestamp.valueOf(LocalDateTime.now())
+        );
+
+        try {
+            // Send the message using the client's message handler
+            ApplicationContext.getMessageHandler().sendTextMessage(newMsg);
+
+            // Clear input
+            messageInput.setText("");
+        } catch (Exception e) {
+            System.err.println("Error sending message: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void onEvent(ApplicationEvent event) {
+
+    }
+}

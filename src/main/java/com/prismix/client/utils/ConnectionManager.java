@@ -39,6 +39,7 @@ public class ConnectionManager {
     }
 
     public void sendMessage(NetworkMessage message) throws IOException {
+        System.out.println("Sending message: " + message);
         out.writeObject(message);
         out.flush();
     }

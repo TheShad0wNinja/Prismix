@@ -23,21 +23,33 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class RoomMainPanel extends ThemedPanel implements EventListener {
     private final Room room;
-    private final JPanel usersPanel;
-    private final ChatPanel chatPanel;
+    private JPanel usersPanel;
+    private ChatPanel chatPanel;
     private final AtomicBoolean isUpdating = new AtomicBoolean(false);
     private static final int USERS_PANEL_WIDTH = 200;
     private static final int MAX_USERNAME_LENGTH = 15;
     private static final int AVATAR_SIZE = 30;
     private static final AtomicLong messageSerial = new AtomicLong(0);
 
+    public RoomMainPanel() {
+        this(null);
+    }
+
     public RoomMainPanel(Room room) {
         super(Variant.BACKGROUND, true);
         this.room = room;
+        if (room == null) {
+            setLayout(new BorderLayout());
+            JLabel titleLabel = new ThemedLabel("Prismix", ThemedLabel.Size.LARGER, ThemedLabel.Variant.BACKGROUND);
+            titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            add(titleLabel, BorderLayout.CENTER);
+            return;
+        }
+
         setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
 
-        chatPanel = new ChatPanel();
+        chatPanel = new ChatPanel(false);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 1.0;
@@ -100,7 +112,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         long messageId = messageSerial.incrementAndGet();
         Message message = new Message(
                 (int) messageId,
-                ApplicationContext.getAuthHandler().getUser().getId(),
+                ApplicationContext.getUserHandler().getUser().getId(),
                 -1,
                 room.getId(),
                 content,
@@ -147,7 +159,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
 
                     itemPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-                    if (!user.equals(ApplicationContext.getAuthHandler().getUser())) {
+                    if (!user.equals(ApplicationContext.getUserHandler().getUser())) {
                         itemPanel.addMouseListener(new MouseAdapter() {
                             @Override
                             public void mousePressed(MouseEvent e) {

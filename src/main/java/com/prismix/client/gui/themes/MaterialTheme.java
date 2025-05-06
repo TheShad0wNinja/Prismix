@@ -36,8 +36,8 @@ public class MaterialTheme implements Theme {
     private static final String LIGHT_ON_ERROR = "#FFFFFF";
     private static final String LIGHT_BACKGROUND = "#F6FAFD";
     private static final String LIGHT_ON_BACKGROUND = "#181C1F";
-    private static final String LIGHT_SURFACE = "#F6FAFD";
-    private static final String LIGHT_ON_SURFACE = "#181C1F";
+    private static final String LIGHT_SURFACE = "#DAE4EA";
+    private static final String LIGHT_ON_SURFACE = "#3E484D";
     private static final String LIGHT_SURFACE_VARIANT = "#DAE4EA";
     private static final String LIGHT_ON_SURFACE_VARIANT = "#3E484D";
     private static final String LIGHT_OUTLINE = "#6E797E";

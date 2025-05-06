@@ -24,10 +24,12 @@ public class ChatPanel extends ThemedPanel implements EventListener {
     );
     private int messageCount = 0;
     private final Component verticalGlue;
+    private final boolean isDirect;
 
-    public ChatPanel() {
+    public ChatPanel(boolean isDirect) {
         super(Variant.BACKGROUND);
-        setLayout(new GridLayout(1, 1));
+        setLayout(new BorderLayout());
+        this.isDirect = isDirect;
 
         mainPanel = new ThemedPanel(Variant.BACKGROUND);
         mainPanel.setLayout(new GridBagLayout());
@@ -38,7 +40,9 @@ public class ChatPanel extends ThemedPanel implements EventListener {
         chatScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         chatScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
-        add(chatScrollPane);
+        add(chatScrollPane, BorderLayout.CENTER);
+
+        add(new InputBar(isDirect), BorderLayout.SOUTH);
 
         ApplicationContext.getEventBus().subscribe(this);
     }
@@ -55,7 +59,7 @@ public class ChatPanel extends ThemedPanel implements EventListener {
                     isUpdating.set(false);
                     return;
                 }
-                User user = ApplicationContext.getRoomHandler().getRoomUser(msg.getSenderId());
+                User user = isDirect ? ApplicationContext.getMessageHandler().getCurrentDirectUser() :  ApplicationContext.getRoomHandler().getRoomUser(msg.getSenderId());
                 if (user == null) {
                     return;
                 }
@@ -96,10 +100,19 @@ public class ChatPanel extends ThemedPanel implements EventListener {
         switch (event.type()) {
             case MESSAGE -> {
                 Message msg = (Message) event.data();
-                if (msg.getRoomId() == ApplicationContext.getRoomHandler().getCurrentRoom().getId()) {
-                    System.out.println("GOT MESSAGE: " + msg);
-                    messages.offer(msg);
-                    processMessage();
+                if (isDirect) {
+                    int currentDirectUserId = ApplicationContext.getMessageHandler().getCurrentDirectUser().getId();
+                    if (msg.getReceiverId() == currentDirectUserId || msg.getSenderId() == currentDirectUserId) {
+                        System.out.println("GOT MESSAGE: " + msg);
+                        messages.offer(msg);
+                        processMessage();
+                    }
+                } else {
+                    if (msg.getRoomId() == ApplicationContext.getRoomHandler().getCurrentRoom().getId()) {
+                        System.out.println("GOT MESSAGE: " + msg);
+                        messages.offer(msg);
+                        processMessage();
+                    }
                 }
             }
             case MESSAGES -> {

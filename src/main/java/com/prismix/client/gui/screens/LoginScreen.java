@@ -64,14 +64,14 @@ public class LoginScreen extends ThemedPanel {
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> ApplicationContext.getAuthHandler().login(usernameField.getText())).start();
+                new Thread(() -> ApplicationContext.getUserHandler().login(usernameField.getText())).start();
             }
         });
 
         signupBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> ApplicationContext.getAuthHandler().signup(
+                new Thread(() -> ApplicationContext.getUserHandler().signup(
                     usernameField.getText(), 
                     usernameField.getText(), 
                     null
