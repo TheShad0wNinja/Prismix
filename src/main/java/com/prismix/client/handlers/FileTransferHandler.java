@@ -20,7 +20,7 @@ import java.util.UUID;
 
 public class FileTransferHandler implements ResponseHandler {
     private final EventBus eventBus;
-    private final AuthHandler authHandler;
+    private final UserHandler authHandler;
     private final Map<String, FileOutputStream> fileStreams;
     private final Map<String, ThemedProgressBar> progressBars;
     private final Path downloadDirectory;
@@ -29,7 +29,7 @@ public class FileTransferHandler implements ResponseHandler {
     private final Map<String, Integer> chunkRetries = new HashMap<>();
     private static final int MAX_RETRIES = 3;
 
-    public FileTransferHandler(EventBus eventBus, AuthHandler authHandler,
+    public FileTransferHandler(EventBus eventBus, UserHandler authHandler,
             HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandlers) {
         this.eventBus = eventBus;
         this.authHandler = authHandler;

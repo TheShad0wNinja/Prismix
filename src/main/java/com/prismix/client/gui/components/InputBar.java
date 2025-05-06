@@ -3,6 +3,7 @@ package com.prismix.client.gui.components;
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
 import com.prismix.client.gui.components.themed.ThemedButton;
+import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.components.themed.ThemedTextField;
 import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.common.model.Message;
@@ -13,12 +14,13 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class InputBar extends JPanel implements EventListener {
+public class InputBar extends ThemedPanel implements EventListener {
     private final JTextField messageInput;
     private final boolean isDirect;
     private static final AtomicLong messageSerial = new AtomicLong(0);
 
     public InputBar(boolean isDirect) {
+        super(Variant.SURFACE_ALT);
         this.isDirect = isDirect;
 
         setLayout(new BorderLayout(5, 5));
@@ -28,14 +30,27 @@ public class InputBar extends JPanel implements EventListener {
         messageInput.setPreferredSize(new Dimension(0, 30));
         add(messageInput, BorderLayout.CENTER);
 
-        JButton sendButton = new ThemedButton("Send", ThemedButton.Variant.PRIMARY);
-        sendButton.setPreferredSize(new Dimension(80, 30));
-        add(sendButton, BorderLayout.EAST);
+        JPanel inputsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        inputsPanel.setOpaque(false);
+
+        JButton uploadButton = new ThemedButton("Upload", ThemedButton.Variant.PRIMARY, ThemedButton.Size.SMALLER);
+        uploadButton.setPreferredSize(new Dimension(60, 30));
+
+        JButton sendButton = new ThemedButton("Send", ThemedButton.Variant.PRIMARY, ThemedButton.Size.SMALLER);
+        sendButton.setPreferredSize(new Dimension(60, 30));
+
+        inputsPanel.add(uploadButton);
+        inputsPanel.add(sendButton);
+
+        add(inputsPanel, BorderLayout.EAST);
 
         ApplicationContext.getEventBus().subscribe(this);
         sendButton.addActionListener(_ -> {
             sendMessage(messageInput.getText());
             messageInput.setText("");
+        });
+        uploadButton.addActionListener((_) -> {
+            ApplicationContext.getFileTransferHandler().selectAndSendFileToRoom(ApplicationContext.getRoomHandler().getCurrentRoom().getId());
         });
     }
 

@@ -26,7 +26,7 @@ public class ApplicationContext {
         this.roomHandler = new RoomHandler(eventBus, userHandler, responseHandlers);
         this.messageHandler = new MessageHandler(eventBus, userHandler, responseHandlers);
         this.videoChatHandler = new VideoChatHandler(eventBus, userHandler, responseHandlers);
-        this.fileTransferHandler = new FileTransferHandler(eventBus, authHandler, responseHandlers);
+        this.fileTransferHandler = new FileTransferHandler(eventBus, userHandler, responseHandlers);
     }
 
     private static ApplicationContext getInstance() {
