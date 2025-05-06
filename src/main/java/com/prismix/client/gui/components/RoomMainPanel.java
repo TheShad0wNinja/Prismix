@@ -165,7 +165,46 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                             public void mousePressed(MouseEvent e) {
                                 super.mousePressed(e);
                                 System.out.println("CLICK ON : " + user);
-                                ApplicationContext.getVideoChatHandler().initiateCall(user);
+                                
+                                // Check if user has existing direct messages
+                                List<Message> directMessages = ApplicationContext.getMessageHandler().getDirectMessageHistory(user);
+                                
+                                if (directMessages == null || directMessages.isEmpty()) {
+                                    // First time: Send an invisible message to initiate the direct chat
+                                    long messageId = messageSerial.incrementAndGet();
+                                    Message initMessage = new Message(
+                                            (int) messageId,
+                                            ApplicationContext.getUserHandler().getUser().getId(),
+                                            user.getId(),
+                                            -1,
+                                            "👋", // Invisible / greeting emoji message to initiate
+                                            true,
+                                            Timestamp.valueOf(LocalDateTime.now())
+                                    );
+                                    
+                                    try {
+                                        ApplicationContext.getMessageHandler().sendTextMessage(initMessage);
+                                        System.out.println("Sent initial direct message to: " + user.getDisplayName());
+                                    } catch (Exception ex) {
+                                        System.err.println("Error sending initial direct message: " + ex.getMessage());
+                                    }
+                                }
+                                
+                                // Navigate to direct message screen with this user
+                                ApplicationContext.getEventBus().publish(new ApplicationEvent(
+                                        ApplicationEvent.Type.DIRECT_SCREEN_SELECTED
+                                ));
+                                
+                                // Add a delay to ensure the direct message screen is loaded before selecting the user
+                                SwingUtilities.invokeLater(() -> {
+                                    // Give the UI time to update and mount components
+                                    SwingUtilities.invokeLater(() -> {
+                                        ApplicationContext.getEventBus().publish(new ApplicationEvent(
+                                                ApplicationEvent.Type.DIRECT_USER_SELECTED,
+                                                user
+                                        ));
+                                    });
+                                });
                             }
 
                             @Override
@@ -181,7 +220,6 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                             }
                         });
                     }
-
 
                     usersPanel.add(itemPanel);
                 }

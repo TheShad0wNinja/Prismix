@@ -129,4 +129,14 @@ public class MessageHandler implements ResponseHandler, EventListener {
             System.out.println("OMAK");
         }
     }
+    
+    /**
+     * Get direct message history with a specific user
+     * @param user The user to get direct message history with
+     * @return List of direct messages with the user
+     */
+    public List<Message> getDirectMessageHistory(User user) {
+        if (user == null) return new ArrayList<>();
+        return MessageRepository.getDirectMessageWithUser(user.getId());
+    }
 }

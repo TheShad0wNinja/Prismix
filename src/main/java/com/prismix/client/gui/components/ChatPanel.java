@@ -59,7 +59,14 @@ public class ChatPanel extends ThemedPanel implements EventListener {
                     isUpdating.set(false);
                     return;
                 }
-                User user = isDirect ? ApplicationContext.getMessageHandler().getCurrentDirectUser() :  ApplicationContext.getRoomHandler().getRoomUser(msg.getSenderId());
+                User user;
+                if (isDirect) {
+                    User myUser = ApplicationContext.getUserHandler().getUser();
+                    User otherUser = ApplicationContext.getMessageHandler().getCurrentDirectUser();
+                    user = myUser.getId() == msg.getSenderId() ? myUser : otherUser;
+                } else {
+                    user =  ApplicationContext.getRoomHandler().getRoomUser(msg.getSenderId());
+                }
                 if (user == null) {
                     return;
                 }

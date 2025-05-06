@@ -42,9 +42,11 @@ public class DirectUserList extends ThemedPanel implements EventListener {
         }
 
         public void updateUserList(List<User> users) {
+            User currentUser = ApplicationContext.getMessageHandler().getCurrentDirectUser();
+
             roomsPanel.removeAll();
             for (User user : users) {
-                DirectUserEntry entry = new DirectUserEntry(user);
+                DirectUserEntry entry = new DirectUserEntry(user, user.equals(currentUser));
                 roomsPanel.add(entry);
             }
             roomsPanel.add(Box.createVerticalGlue());

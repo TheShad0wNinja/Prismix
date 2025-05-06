@@ -31,6 +31,20 @@ public class DirectUserEntry extends ThemedPanel implements EventListener {
     private Color hoverTextColor;
     private boolean isHovered;
 
+    public DirectUserEntry(User user, boolean isSelected) {
+        super(ThemedPanel.Variant.SURFACE_ALT, true);
+        this.user = user;
+
+        this.isSelected = isSelected;
+
+        initComponents();
+
+        if (!isSelected) {
+            addListeners();
+        }
+
+        ApplicationContext.getEventBus().subscribe(this);    }
+
     public DirectUserEntry(User user) {
         super(ThemedPanel.Variant.SURFACE_ALT, true);
         this.user = user;
@@ -154,6 +168,7 @@ public class DirectUserEntry extends ThemedPanel implements EventListener {
     public void onEvent(ApplicationEvent event) {
         if (event.type() == ApplicationEvent.Type.DIRECT_USER_SELECTED) {
             User user = (User) event.data();
+            System.out.println("LIGMA");
 
             boolean isNewSelectedUser = user != null && user.equals(this.user);
             if (isNewSelectedUser) {

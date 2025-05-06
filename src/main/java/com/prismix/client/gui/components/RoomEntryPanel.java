@@ -176,7 +176,15 @@ public class RoomEntryPanel extends ThemedPanel implements EventListener {
                 addListeners();
                 repaint();
             }
+        } else if (event.type() == ApplicationEvent.Type.DIRECT_USER_SELECTED) {
+            if (this.isSelected) {
+                this.isSelected = false;
+                this.isHovered = false;
+                addListeners();
+                repaint();
+            }
         }
+
     }
 
     @Override

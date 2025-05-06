@@ -112,7 +112,6 @@ public class MessageRepository {
             SELECT sender_id, receiver_id
             FROM message
             WHERE direct = 1
-            AND owner_id = ?
             AND (sender_id = ? OR receiver_id = ?)
             ORDER BY timestamp DESC
             """;
@@ -122,9 +121,6 @@ public class MessageRepository {
 
             stmt.setInt(1, userId);
             stmt.setInt(2, userId);
-            stmt.setInt(3, userId);
-//            stmt.setInt(1, roomId);
-//            stmt.setInt(2, ApplicationContext.getAuthHandler().getUser().getId());
 
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
