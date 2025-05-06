@@ -35,7 +35,7 @@ public class UserHandler implements RequestHandler {
                 User user = UserManager.registerUser(msg.username(), msg.displayName(), msg.avatar());
                 SignupResponse response;
                 if (user == null) {
-                    response = new SignupResponse(false, "Invalid ", null);
+                    response = new SignupResponse(false, "Invalid", null);
                 } else {
                     response = new SignupResponse(true, null, user);
                     activeUsers.put(user, clientHandler);

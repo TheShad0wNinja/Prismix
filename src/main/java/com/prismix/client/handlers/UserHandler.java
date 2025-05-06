@@ -70,6 +70,11 @@ public class UserHandler implements ResponseHandler {
                             ApplicationEvent.Type.SWITCH_SCREEN,
                             MainFrame.AppScreen.CHAT_SCREEN
                     ));
+                } else {
+                    eventBus.publish(new ApplicationEvent(
+                            ApplicationEvent.Type.AUTH_ERROR,
+                            res.errorMessage()
+                    ));
                 }
             }
             case SIGNUP_RESPONSE -> {
@@ -83,6 +88,11 @@ public class UserHandler implements ResponseHandler {
                     eventBus.publish(new ApplicationEvent(
                             ApplicationEvent.Type.SWITCH_SCREEN,
                             MainFrame.AppScreen.CHAT_SCREEN
+                    ));
+                } else {
+                    eventBus.publish(new ApplicationEvent(
+                            ApplicationEvent.Type.AUTH_ERROR,
+                            res.errorMessage()
                     ));
                 }
             }

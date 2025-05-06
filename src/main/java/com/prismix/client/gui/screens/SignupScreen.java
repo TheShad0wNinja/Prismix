@@ -1,6 +1,7 @@
 package com.prismix.client.gui.screens;
 
 import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.core.EventListener;
 import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedButton;
 import com.prismix.client.gui.components.themed.ThemedLabel;
@@ -19,7 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 
-public class SignupScreen extends ThemedPanel {
+public class SignupScreen extends ThemedPanel implements EventListener {
     private ThemedTextField usernameField;
     private ThemedTextField displayNameField;
     private JPasswordField passwordField;
@@ -29,6 +30,8 @@ public class SignupScreen extends ThemedPanel {
     
     public SignupScreen() {
         setLayout(new BorderLayout());
+
+        ApplicationContext.getEventBus().subscribe(this);
         
         // Create title panel
         JPanel titlePanel = new ThemedPanel();
@@ -246,4 +249,21 @@ public class SignupScreen extends ThemedPanel {
                 MainFrame.AppScreen.LOGIN_SCREEN
         ));
     }
-} 
+
+    @Override
+    public void onEvent(ApplicationEvent event) {
+        if (event.type() == ApplicationEvent.Type.AUTH_ERROR) {
+            String msg = (String) event.data();
+            JOptionPane.showMessageDialog(this,
+                    msg,
+                    "Registration Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    @Override
+    public void removeNotify() {
+        super.removeNotify();
+        ApplicationContext.getEventBus().unsubscribe(this);
+    }
+}

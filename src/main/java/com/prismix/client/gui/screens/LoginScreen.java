@@ -1,6 +1,7 @@
 package com.prismix.client.gui.screens;
 
 import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.core.EventListener;
 import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedButton;
 import com.prismix.client.gui.components.themed.ThemedLabel;
@@ -12,12 +13,13 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class LoginScreen extends ThemedPanel {
+public class LoginScreen extends ThemedPanel implements EventListener {
 //    private final ApplicationContext context;
     private JButton loginButton;
     private JButton signupButton;
 
     public LoginScreen() {
+        ApplicationContext.getEventBus().subscribe(this);
 //        this.context = context;
         setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
@@ -83,5 +85,22 @@ public class LoginScreen extends ThemedPanel {
 
     public JButton getSignupButton() {
         return signupButton;
+    }
+
+    @Override
+    public void onEvent(ApplicationEvent event) {
+        if (event.type() == ApplicationEvent.Type.AUTH_ERROR) {
+            String msg = (String) event.data();
+            JOptionPane.showMessageDialog(this,
+                    msg,
+                    "Login Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    @Override
+    public void removeNotify() {
+        super.removeNotify();
+        ApplicationContext.getEventBus().unsubscribe(this);
     }
 }
