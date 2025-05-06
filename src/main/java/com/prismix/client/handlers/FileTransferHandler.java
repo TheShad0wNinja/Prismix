@@ -5,6 +5,7 @@ import com.prismix.client.core.EventBus;
 import com.prismix.client.data.repository.FileTransferRepository;
 import com.prismix.client.gui.components.themed.ThemedProgressBar;
 import com.prismix.client.utils.ConnectionManager;
+import com.prismix.common.model.Message;
 import com.prismix.common.model.network.*;
 
 import javax.swing.*;
@@ -61,6 +62,20 @@ public class FileTransferHandler implements ResponseHandler {
         }
 
         try {
+            // Create a message with the file name
+            Message fileMessage = new Message(
+                    0,
+                    authHandler.getUser().getId(),
+                    receiverId,
+                    roomId,
+                    "FILE:" + file.getName(),
+                    isDirect,
+                    new java.sql.Timestamp(System.currentTimeMillis()));
+
+            // Send the file message
+            ApplicationContext.getMessageHandler().sendTextMessage(fileMessage);
+
+            // Send the actual file
             FileTransferUploadRequest request = new FileTransferUploadRequest(
                     file.getName(),
                     file.length(),

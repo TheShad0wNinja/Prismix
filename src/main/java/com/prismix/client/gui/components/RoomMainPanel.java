@@ -77,11 +77,6 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
 
-        JButton downloadButton = new JButton("Download");
-        downloadButton.setPreferredSize(new Dimension(90, 30));
-        downloadButton.addActionListener(e -> showFileListDialog());
-        buttonPanel.add(downloadButton);
-
         JButton fileButton = new JButton("Upload");
         fileButton.setPreferredSize(new Dimension(80, 30));
         fileButton.addActionListener(e -> {
@@ -190,7 +185,6 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                         });
                     }
 
-
                     usersPanel.add(itemPanel);
                 }
                 usersPanel.add(Box.createVerticalGlue());
@@ -221,23 +215,5 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
     public void removeNotify() {
         super.removeNotify();
         ApplicationContext.getEventBus().unsubscribe(this);
-    }
-
-    private void showFileListDialog() {
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Available Files", false);
-        dialog.setLayout(new BorderLayout());
-
-        FileListPanel fileListPanel = new FileListPanel();
-        dialog.add(fileListPanel, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton closeButton = new JButton("Close");
-        closeButton.addActionListener(e -> dialog.dispose());
-        buttonPanel.add(closeButton);
-        dialog.add(buttonPanel, BorderLayout.SOUTH);
-
-        dialog.setSize(400, 500);
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
     }
 }
