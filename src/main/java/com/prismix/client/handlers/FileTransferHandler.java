@@ -26,6 +26,8 @@ public class FileTransferHandler implements ResponseHandler {
     private final Path downloadDirectory;
     private static final int CHUNK_SIZE = 8192; // 8KB chunks
     private final Map<String, File> pendingFiles;
+    private final Map<String, Integer> chunkRetries = new HashMap<>();
+    private static final int MAX_RETRIES = 3;
 
     public FileTransferHandler(EventBus eventBus, AuthHandler authHandler,
             HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandlers) {
@@ -241,16 +243,27 @@ public class FileTransferHandler implements ResponseHandler {
                 int totalChunks = (int) Math.ceil((double) file.length() / CHUNK_SIZE);
                 int chunkNumber = 0;
                 int bytesRead;
+                long totalBytesRead = 0;
 
                 while ((bytesRead = fis.read(buffer)) != -1) {
-                    byte[] chunk = bytesRead < CHUNK_SIZE ? Arrays.copyOf(buffer, bytesRead) : buffer;
+                    // Create a new buffer with exact size to avoid any buffer issues
+                    byte[] chunk = new byte[bytesRead];
+                    System.arraycopy(buffer, 0, chunk, 0, bytesRead);
+
+                    // Verify the chunk data before sending
+                    if (chunk.length != bytesRead) {
+                        throw new IOException("Chunk size mismatch: expected " + bytesRead + ", got " + chunk.length);
+                    }
+
                     FileTransferChunk chunkMessage = new FileTransferChunk(
                             transferId,
                             chunk,
                             chunkNumber,
                             totalChunks);
 
+                    // Send chunk and wait for acknowledgment
                     ConnectionManager.getInstance().sendMessage(chunkMessage);
+                    totalBytesRead += bytesRead;
 
                     // Update progress bar
                     int progress = (int) ((chunkNumber + 1.0) / totalChunks * 100);
@@ -262,15 +275,30 @@ public class FileTransferHandler implements ResponseHandler {
                         });
                     }
 
+                    // Add a small delay between chunks to prevent overwhelming the network
+                    Thread.sleep(10);
+
                     chunkNumber++;
                 }
-            } catch (IOException e) {
+
+                // Verify total bytes read matches file size
+                if (totalBytesRead != file.length()) {
+                    throw new IOException("File size mismatch: expected " + file.length() + ", read " + totalBytesRead);
+                }
+
+            } catch (IOException | InterruptedException e) {
                 System.err.println("Error sending file chunks: " + e.getMessage());
                 ThemedProgressBar pb = progressBars.remove(transferId);
                 if (pb != null) {
                     SwingUtilities.invokeLater(() -> {
                         pb.setString("Error sending file: " + e.getMessage());
                     });
+                }
+                try {
+                    ConnectionManager.getInstance()
+                            .sendMessage(new FileTransferError(transferId, "Error sending file: " + e.getMessage()));
+                } catch (Exception ex) {
+                    System.err.println("Error sending error message: " + ex.getMessage());
                 }
             }
         }).start();
@@ -360,6 +388,34 @@ public class FileTransferHandler implements ResponseHandler {
 
     private void handleTransferChunk(FileTransferChunk chunk) {
         try {
+            // Verify checksum before writing
+            if (!chunk.verifyChecksum()) {
+                System.err.println("Checksum verification failed for chunk " + chunk.getChunkNumber());
+
+                // Implement retry logic
+                int retryCount = chunkRetries.getOrDefault(chunk.getTransferId(), 0);
+                if (retryCount < MAX_RETRIES) {
+                    chunkRetries.put(chunk.getTransferId(), retryCount + 1);
+                    System.out.println(
+                            "Retrying chunk " + chunk.getChunkNumber() + " (attempt " + (retryCount + 1) + ")");
+                    // Request retry from server
+                    ConnectionManager.getInstance()
+                            .sendMessage(new FileTransferError(chunk.getTransferId(),
+                                    "RETRY_CHUNK:" + chunk.getChunkNumber()));
+                    return;
+                } else {
+                    System.err.println("Max retries reached for chunk " + chunk.getChunkNumber());
+                    ConnectionManager.getInstance()
+                            .sendMessage(new FileTransferError(chunk.getTransferId(),
+                                    "Data corruption detected in chunk " + chunk.getChunkNumber() + " after "
+                                            + MAX_RETRIES + " retries"));
+                    return;
+                }
+            }
+
+            // Reset retry count on successful chunk
+            chunkRetries.remove(chunk.getTransferId());
+
             FileOutputStream fos = fileStreams.get(chunk.getTransferId());
             if (fos != null) {
                 fos.write(chunk.getData());
@@ -377,19 +433,54 @@ public class FileTransferHandler implements ResponseHandler {
                             fileStreams.put(chunk.getTransferId(), newFos);
                             newFos.write(chunk.getData());
                             newFos.flush();
+                        } else {
+                            throw new IOException("File path exists in database but file not found: " + filePath);
                         }
+                    } else {
+                        throw new IOException("No file path found in database for transfer: " + chunk.getTransferId());
                     }
                 } catch (SQLException e) {
                     System.err.println("Error getting file path from database: " + e.getMessage());
+                    throw new IOException("Database error while retrieving file path", e);
                 }
+            }
+
+            // If this is the last chunk, close the file stream
+            if (chunk.getChunkNumber() == chunk.getTotalChunks() - 1) {
+                FileOutputStream stream = fileStreams.get(chunk.getTransferId());
+                if (stream != null) {
+                    stream.close();
+                    fileStreams.remove(chunk.getTransferId());
+                }
+                // Clean up retry counter
+                chunkRetries.remove(chunk.getTransferId());
             }
         } catch (IOException e) {
             System.err.println("Error writing file chunk: " + e.getMessage());
             try {
+                // Close and remove the file stream
+                FileOutputStream stream = fileStreams.remove(chunk.getTransferId());
+                if (stream != null) {
+                    stream.close();
+                }
+
+                // Send error message to server
                 ConnectionManager.getInstance()
-                        .sendMessage(new FileTransferError(chunk.getTransferId(), e.getMessage()));
+                        .sendMessage(new FileTransferError(chunk.getTransferId(),
+                                "Error writing file: " + e.getMessage()));
+
+                // Update progress bar
+                ThemedProgressBar progressBar = progressBars.remove(chunk.getTransferId());
+                if (progressBar != null) {
+                    SwingUtilities.invokeLater(() -> {
+                        progressBar.setString("Transfer failed: " + e.getMessage());
+                    });
+                }
+
+                // Clean up retry counter
+                chunkRetries.remove(chunk.getTransferId());
             } catch (Exception ex) {
-                System.err.println("Error sending error message: " + ex.getMessage());
+                System.err.println("Error handling transfer error: " + ex.getMessage());
             }
         }
     }

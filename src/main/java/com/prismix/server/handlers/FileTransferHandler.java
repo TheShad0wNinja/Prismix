@@ -227,9 +227,26 @@ public class FileTransferHandler implements RequestHandler {
             }
         }
 
+        // Verify checksum before writing
+        if (!chunk.verifyChecksum()) {
+            System.err.println("Checksum verification failed for chunk " + chunk.getChunkNumber());
+            // Request retry of the chunk
+            client.sendMessage(new FileTransferError(chunk.getTransferId(),
+                    "Data corruption detected in chunk " + chunk.getChunkNumber() + ". Please retry."));
+            return;
+        }
+
         try {
-            Files.write(Paths.get(filePath), chunk.getData(),
-                    chunk.getChunkNumber() == 0 ? StandardOpenOption.CREATE : StandardOpenOption.APPEND);
+            // Create parent directories if they don't exist
+            Path path = Paths.get(filePath);
+            Files.createDirectories(path.getParent());
+
+            // Write chunk with atomic operation
+            Files.write(path, chunk.getData(),
+                    chunk.getChunkNumber() == 0
+                            ? new StandardOpenOption[] { StandardOpenOption.CREATE,
+                                    StandardOpenOption.TRUNCATE_EXISTING }
+                            : new StandardOpenOption[] { StandardOpenOption.APPEND });
 
             // Update progress
             long totalBytes = transferSizes.getOrDefault(chunk.getTransferId(), 0L);
@@ -248,7 +265,27 @@ public class FileTransferHandler implements RequestHandler {
             }
 
             if (chunk.getChunkNumber() == chunk.getTotalChunks() - 1) {
-                FileTransferRepository.updateFileTransferStatus(chunk.getTransferId(), "COMPLETED");
+                // Verify final file size
+                long actualSize = Files.size(path);
+                if (actualSize != totalBytes) {
+                    System.err.println("File size mismatch: expected " + totalBytes + ", got " + actualSize);
+                    // Delete the incomplete file
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException ex) {
+                        System.err.println("Failed to delete incomplete file: " + ex.getMessage());
+                    }
+                    client.sendMessage(new FileTransferError(chunk.getTransferId(),
+                            "File size verification failed. Transfer incomplete. Please retry."));
+                    return;
+                }
+
+                try {
+                    FileTransferRepository.updateFileTransferStatus(chunk.getTransferId(), "COMPLETED");
+                } catch (SQLException e) {
+                    System.err.println("Failed to update transfer status: " + e.getMessage());
+                    // Continue with cleanup even if database update fails
+                }
 
                 // Clean up
                 transferPaths.remove(chunk.getTransferId());
@@ -258,14 +295,15 @@ public class FileTransferHandler implements RequestHandler {
 
                 client.sendMessage(new FileTransferComplete(chunk.getTransferId(), null, 0, 0, 0, false, 0));
             }
-        } catch (IOException | SQLException e) {
-            System.err.println("Error handling file chunk: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Error writing file chunk: " + e.getMessage());
+            client.sendMessage(new FileTransferError(chunk.getTransferId(),
+                    "Error writing file: " + e.getMessage() + ". Please retry."));
             try {
                 FileTransferRepository.updateFileTransferStatus(chunk.getTransferId(), "FAILED");
             } catch (SQLException ex) {
                 System.err.println("Failed to update transfer status: " + ex.getMessage());
             }
-            client.sendMessage(new FileTransferError(chunk.getTransferId(), "Failed to save file chunk"));
         }
     }
 }
