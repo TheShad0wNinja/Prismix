@@ -50,7 +50,10 @@ public class InputBar extends ThemedPanel implements EventListener {
             messageInput.setText("");
         });
         uploadButton.addActionListener((_) -> {
-            ApplicationContext.getFileTransferHandler().selectAndSendFileToRoom(ApplicationContext.getRoomHandler().getCurrentRoom().getId());
+            if (isDirect)
+                ApplicationContext.getFileTransferHandler().selectAndSendFileToUser(ApplicationContext.getMessageHandler().getCurrentDirectUser().getId());
+            else
+                ApplicationContext.getFileTransferHandler().selectAndSendFileToRoom(ApplicationContext.getRoomHandler().getCurrentRoom().getId());
         });
     }
 
