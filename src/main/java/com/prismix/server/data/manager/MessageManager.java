@@ -74,6 +74,15 @@ public class MessageManager {
         }
     }
 
+    public static boolean markMessageAsUnread(int userId, Message message) {
+        try {
+            return UserUnreadMessageRepository.markMessageAsUnread(userId, message.getId());
+        } catch (SQLException e) {
+            System.out.println("Error marking message as unread for user: " + e.getMessage());
+            return false;
+        }
+    }
+
     public static boolean markMessageAsUnread(User user, Message message) {
         try {
             return UserUnreadMessageRepository.markMessageAsUnread(user.getId(), message.getId());

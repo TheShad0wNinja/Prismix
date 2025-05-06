@@ -2,8 +2,10 @@ package com.prismix.server.data.repository;
 
 import com.prismix.common.model.User;
 import com.prismix.server.utils.ServerDatabaseManager;
+
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class UserRepository {
@@ -86,7 +88,8 @@ public class UserRepository {
         } catch (SQLException ex) {
             System.out.println("Unable to get users: " + ex.getMessage());
             throw ex;
-        };
+        }
+        ;
 
         return null;
     }
@@ -148,5 +151,38 @@ public class UserRepository {
             throw e;
         }
         return users;
+    }
+
+    public static List<User> getUsersById(List<Integer> userIds) {
+        List<User> users = new ArrayList<>();
+        if (userIds.isEmpty()) {
+            return users;
+        }
+
+        String placeholders = String.join(",", Collections.nCopies(userIds.size(), "?"));
+        String sql = "SELECT * FROM user WHERE id IN (" + placeholders + ")";
+        try (Connection conn = ServerDatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+        ) {
+
+            for (int i = 0; i < userIds.size(); i++) {
+                stmt.setInt(i + 1, userIds.get(i));
+            }
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                users.add(createUser(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching all users: " + e.getMessage());
+        }
+        return users;
+    }
+
+    private static User createUser(ResultSet rs) throws SQLException {
+        int id = rs.getInt("id");
+        String username = rs.getString("username");
+        String displayName = rs.getString("display_name");
+        byte[] avatar = rs.getBytes("avatar");
+        return new User(id, username, displayName, avatar);
     }
 }

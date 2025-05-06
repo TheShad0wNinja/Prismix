@@ -8,6 +8,10 @@ public interface NetworkMessage extends Serializable {
         LOGIN_REQUEST, LOGIN_RESPONSE,
         SIGNUP_REQUEST, SIGNUP_RESPONSE,
 
+        // User messages
+        GET_USERS_INFO_REQUEST, GET_USERS_INFO_RESPONSE,
+        GET_ALL_USERS_REQUEST, GET_ALL_USERS_RESPONSE,
+
         // Room Messages
         GET_ROOMS_REQUEST, GET_ROOMS_RESPONSE, // Get List of users rooms
         GET_ROOM_USERS_REQUEST, GET_ROOM_USERS_RESPONSE, // GEt list of users in the room

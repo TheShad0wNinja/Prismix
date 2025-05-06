@@ -5,16 +5,22 @@ import com.prismix.common.model.network.*;
 import com.prismix.server.core.ClientHandler;
 import com.prismix.server.core.RequestHandler;
 import com.prismix.server.data.manager.UserManager;
+import com.prismix.server.data.repository.UserRepository;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
-public class AuthHandler implements RequestHandler {
+public class UserHandler implements RequestHandler {
     private final HashMap<User, ClientHandler> activeUsers;
 
-    public AuthHandler(HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
+    public UserHandler(HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
         this.activeUsers = new HashMap<>();
         requestHandlers.put(NetworkMessage.MessageType.LOGIN_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.SIGNUP_REQUEST, this);
+        requestHandlers.put(NetworkMessage.MessageType.GET_ROOM_USERS_REQUEST, this);
+        requestHandlers.put(NetworkMessage.MessageType.GET_USERS_INFO_REQUEST, this);
+        requestHandlers.put(NetworkMessage.MessageType.GET_ALL_USERS_REQUEST, this);
     }
 
     public HashMap<User, ClientHandler> getActiveUsers() {
@@ -49,6 +55,20 @@ public class AuthHandler implements RequestHandler {
                     clientHandler.setUser(user);
                 }
                 clientHandler.sendMessage(response);
+            }
+            case GET_USERS_INFO_REQUEST -> {
+                GetUsersInfoRequest msg = (GetUsersInfoRequest) message;
+                List<User> users = UserRepository.getUsersById(msg.userIds());
+                clientHandler.sendMessage(new GetUsersInfoResponse(users));
+            }
+            case GET_ALL_USERS_REQUEST -> {
+                try {
+                    List<User> allUsers = UserRepository.getAllUsers();
+                    clientHandler.sendMessage(new GetAllUsersResponse(allUsers));
+                } catch (Exception e) {
+                    System.err.println("Error getting all users: " + e.getMessage());
+                    clientHandler.sendMessage(new GetAllUsersResponse(new ArrayList<>()));
+                }
             }
         }
     }

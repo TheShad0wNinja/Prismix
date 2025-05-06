@@ -10,7 +10,7 @@ public class ApplicationContext {
     private static ApplicationContext instance;
 
     private final Client client;
-    private final AuthHandler authHandler;
+    private final UserHandler userHandler;
     private final RoomHandler roomHandler;
     private final MessageHandler messageHandler;
     private final VideoChatHandler videoChatHandler;
@@ -21,10 +21,10 @@ public class ApplicationContext {
         responseHandlers = new HashMap<>();
         this.client = new Client(responseHandlers);
         this.eventBus = new EventBus();
-        this.authHandler = new AuthHandler(eventBus, responseHandlers);
-        this.roomHandler = new RoomHandler(eventBus, authHandler, responseHandlers);
-        this.messageHandler = new MessageHandler(eventBus, authHandler, responseHandlers);
-        this.videoChatHandler = new VideoChatHandler(eventBus, authHandler, responseHandlers);
+        this.userHandler = new UserHandler(eventBus, responseHandlers);
+        this.roomHandler = new RoomHandler(eventBus, userHandler, responseHandlers);
+        this.messageHandler = new MessageHandler(eventBus, userHandler, responseHandlers);
+        this.videoChatHandler = new VideoChatHandler(eventBus, userHandler, responseHandlers);
     }
 
     private static ApplicationContext getInstance() {
@@ -46,8 +46,8 @@ public class ApplicationContext {
         return getInstance().eventBus;
     }
 
-    public static AuthHandler getAuthHandler() {
-        return getInstance().authHandler;
+    public static UserHandler getUserHandler() {
+        return getInstance().userHandler;
     }
 
     public static MessageHandler getMessageHandler() {

@@ -1,7 +1,7 @@
 package com.prismix.server.core;
 
 import com.prismix.common.model.network.NetworkMessage;
-import com.prismix.server.handlers.AuthHandler;
+import com.prismix.server.handlers.UserHandler;
 import com.prismix.server.handlers.MessageHandler;
 import com.prismix.server.handlers.RoomHandler;
 import com.prismix.server.handlers.VideoChatHandler;
@@ -19,14 +19,14 @@ import java.util.logging.Logger;
 public class Server {
     private static final Logger logger = Logger.getLogger(Server.class.getName());
     private final int PORT = 42069;
-    private final AuthHandler userHandler;
+    private final UserHandler userHandler;
     private final HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers;
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
     private ServerSocket serverSocket;
 
     public Server() throws IOException {
         requestHandlers = new HashMap<>();
-        this.userHandler = new AuthHandler(requestHandlers);
+        this.userHandler = new UserHandler(requestHandlers);
         new RoomHandler(requestHandlers);
         new MessageHandler(userHandler, requestHandlers);
         new VideoChatHandler(userHandler, requestHandlers);

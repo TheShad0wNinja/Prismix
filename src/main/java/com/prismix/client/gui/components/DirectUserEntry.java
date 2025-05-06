@@ -1,26 +1,26 @@
 package com.prismix.client.gui.components;
 
-import com.prismix.client.core.EventListener;
-import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.core.ApplicationEvent;
+import com.prismix.client.core.EventListener;
 import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.themes.Theme;
 import com.prismix.client.gui.themes.ThemeManager;
 import com.prismix.client.gui.themes.ThemePainter;
+import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.common.model.Room;
+import com.prismix.common.model.User;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class RoomEntryPanel extends ThemedPanel implements EventListener {
-
+public class DirectUserEntry extends ThemedPanel implements EventListener {
     private static final int VERTICAL_SPACING = 4;
     private static final int AVATAR_SIZE = 40;
-    private final Room room;
+    private final User user;
     private boolean isSelected;
     private JLabel roomAvatarLabel;
     private JLabel roomNameLabel;
@@ -31,14 +31,27 @@ public class RoomEntryPanel extends ThemedPanel implements EventListener {
     private Color hoverTextColor;
     private boolean isHovered;
 
-    public RoomEntryPanel(Room room) {
-        super(Variant.SURFACE_ALT, true);
-        this.room = room;
+    public DirectUserEntry(User user, boolean isSelected) {
+        super(ThemedPanel.Variant.SURFACE_ALT, true);
+        this.user = user;
 
-        isSelected = ApplicationContext.getRoomHandler().getCurrentRoom() != null && ApplicationContext.getRoomHandler().getCurrentRoom().equals(room);
+        this.isSelected = isSelected;
 
         initComponents();
-        displayRoomInfo();
+
+        if (!isSelected) {
+            addListeners();
+        }
+
+        ApplicationContext.getEventBus().subscribe(this);    }
+
+    public DirectUserEntry(User user) {
+        super(ThemedPanel.Variant.SURFACE_ALT, true);
+        this.user = user;
+
+        isSelected = ApplicationContext.getRoomHandler().getCurrentRoom() != null && ApplicationContext.getRoomHandler().getCurrentRoom().equals(user);
+
+        initComponents();
 
         if (!isSelected) {
             addListeners();
@@ -62,8 +75,8 @@ public class RoomEntryPanel extends ThemedPanel implements EventListener {
             @Override
             public void mouseClicked(MouseEvent e) {
                 ApplicationContext.getEventBus().publish(new ApplicationEvent(
-                        ApplicationEvent.Type.ROOM_SELECTED,
-                        room
+                        ApplicationEvent.Type.DIRECT_USER_SELECTED,
+                        user
                 ));
             }
         });
@@ -84,33 +97,24 @@ public class RoomEntryPanel extends ThemedPanel implements EventListener {
 
     private void initComponents() {
         setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10)); // Simple layout for the entry
+
         if (!isSelected) {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
 
-//        roomAvatarLabel = new ThemedIcon(room.getAvatar(), AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.ROUNDED);
-        roomNameLabel = new ThemedLabel();
-
-//        add(roomAvatarLabel);
-
-        setAlignmentX(Component.LEFT_ALIGNMENT);
-
-    }
-
-    private void displayRoomInfo() {
-        if (room != null) {
-//            ImageIcon avatarIcon = AvatarDisplayHelper.getAvatarImageIcon(room.getAvatar(), 40, 40);
-//            roomAvatarLabel.setIcon(avatarIcon);
-
-            roomAvatarLabel = new ThemedIcon(room.getAvatar(), AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.ROUNDED);
-            roomNameLabel.setText(room.getName());
+        if (user != null) {
+            roomAvatarLabel = new ThemedIcon(user.getAvatar(), AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.ROUNDED);
+            roomNameLabel = new ThemedLabel(user.getDisplayName(), ThemedLabel.Size.SMALLER, ThemedLabel.Variant.SURFACE_ALT);
         } else {
             roomAvatarLabel = new JLabel();
-            roomNameLabel.setText("Unknown Room");
+            roomNameLabel = new ThemedLabel("UNKNOWN NULL", ThemedLabel.Size.SMALLER, ThemedLabel.Variant.SURFACE_ALT);
         }
 
         add(roomAvatarLabel);
         add(roomNameLabel);
+
+        setAlignmentX(Component.LEFT_ALIGNMENT);
+
     }
 
     @Override
@@ -162,11 +166,12 @@ public class RoomEntryPanel extends ThemedPanel implements EventListener {
 
     @Override
     public void onEvent(ApplicationEvent event) {
-        if (event.type() == ApplicationEvent.Type.ROOM_SELECTED) {
-            Room room = (Room) event.data();
+        if (event.type() == ApplicationEvent.Type.DIRECT_USER_SELECTED) {
+            User user = (User) event.data();
+            System.out.println("LIGMA");
 
-            boolean isNewSelectedRoom = room != null && room.equals(this.room);
-            if (isNewSelectedRoom) {
+            boolean isNewSelectedUser = user != null && user.equals(this.user);
+            if (isNewSelectedUser) {
                 this.isSelected = true;
                 removeListeners();
                 repaint();
@@ -176,15 +181,7 @@ public class RoomEntryPanel extends ThemedPanel implements EventListener {
                 addListeners();
                 repaint();
             }
-        } else if (event.type() == ApplicationEvent.Type.DIRECT_USER_SELECTED) {
-            if (this.isSelected) {
-                this.isSelected = false;
-                this.isHovered = false;
-                addListeners();
-                repaint();
-            }
         }
-
     }
 
     @Override
