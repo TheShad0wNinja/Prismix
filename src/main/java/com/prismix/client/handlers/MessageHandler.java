@@ -112,9 +112,11 @@ public class MessageHandler implements ResponseHandler, EventListener {
             }
             case ROOM_SELECTED -> {
                 currentRoom = (Room) event.data();
+                currentDirectUser = null;
             }
             case DIRECT_USER_SELECTED -> {
                 currentDirectUser = (User) event.data();
+                currentRoom = null;
                 updateDirectUserMessages();
             }
         }

@@ -29,35 +29,35 @@ public class MessageHandler implements RequestHandler {
                 HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
                 if (msg.isDirect()) {
                     Message createdMsg = MessageManager.createMessage(msg);
+                    if (createdMsg == null) {
+                        client.sendMessage(new SendTextMessageResponse(msg, false));
+                        return;
+                    }
+                    
+                    // Send response to sender
+                    client.sendMessage(new SendTextMessageResponse(msg, true));
+                    
                     User receiver = new User();
-
                     receiver.setId(msg.getReceiverId());
-                    if (activeUsers.containsKey(receiver)) {
-                        boolean delivered = false;
-                        if (activeUsers.get(receiver).isConnected()) {
-                            delivered = activeUsers.get(receiver).sendMessage(new ReceiveTextMessageRequest(msg));
-
-                        }
-                        if (!delivered) {
-                            activeUsers.remove(receiver);
-                            MessageManager.markMessageAsUnread(receiver, createdMsg);
-                        }
-                    }
-
-                    receiver.setId(msg.getSenderId());
+                    
+                    // If receiver is active, send the message directly
                     if (activeUsers.containsKey(receiver)) {
                         boolean delivered = false;
                         if (activeUsers.get(receiver).isConnected()) {
                             delivered = activeUsers.get(receiver).sendMessage(new ReceiveTextMessageRequest(msg));
                         }
-
+                        
+                        // If delivery failed or user not connected, mark as unread
                         if (!delivered) {
                             activeUsers.remove(receiver);
-                            MessageManager.markMessageAsUnread(receiver, createdMsg);
+                            System.out.println("Marking message as unread for receiver: " + msg.getReceiverId());
+                            MessageManager.markMessageAsUnread(msg.getReceiverId(), createdMsg);
                         }
-
+                    } else {
+                        // Receiver is not active, mark message as unread
+                        System.out.println("Receiver not active, marking message as unread: " + msg.getReceiverId());
+                        MessageManager.markMessageAsUnread(msg.getReceiverId(), createdMsg);
                     }
-
                 } else {
                     List<User> roomUsers = RoomManager.getMembersOfRoom(msg.getRoomId());
                     if (roomUsers == null) {
@@ -93,11 +93,13 @@ public class MessageHandler implements RequestHandler {
             case GET_UNREAD_MESSAGE_REQUEST -> {
                 GetUnreadMessagesRequest request = (GetUnreadMessagesRequest) message;
                 List<Message> messages = MessageManager.getUnreadMessages(request.user().getId());
+                System.out.println("THE MESSAGES: " + messages);
                 if (messages == null) {
                     return;
                 }
 
                 if (userHandler.getActiveUsers().containsKey(request.user())) {
+                    System.out.println(messages);
                     userHandler.getActiveUsers().get(request.user()).sendMessage(new GetUnreadMessagesResponse(messages));
                     for (Message m : messages) {
                         MessageManager.markMessageAsRead(request.user().getId(), m.getId());
