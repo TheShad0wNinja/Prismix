@@ -8,10 +8,10 @@ import com.prismix.server.core.RequestHandler;
 import java.util.HashMap;
 
 public class VideoChatHandler implements RequestHandler {
-    private final AuthHandler authHandler;
+    private final UserHandler userHandler;
 
-    public VideoChatHandler(AuthHandler authHandler, HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
-        this.authHandler = authHandler;
+    public VideoChatHandler(UserHandler userHandler, HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
+        this.userHandler = userHandler;
         
         // Register for video chat message types
         requestHandlers.put(NetworkMessage.MessageType.VIDEO_CALL_REQUEST, this);
@@ -57,7 +57,7 @@ public class VideoChatHandler implements RequestHandler {
                 " to " + request.callee().getUsername());
         
         // Get the client handler for the callee
-        HashMap<User, ClientHandler> activeUsers = authHandler.getActiveUsers();
+        HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
         ClientHandler calleeClient = activeUsers.get(request.callee());
         
         if (calleeClient != null && calleeClient.isConnected()) {
@@ -78,7 +78,7 @@ public class VideoChatHandler implements RequestHandler {
                 (response.accepted() ? "Accepted" : "Rejected"));
         
         // Forward the response to the caller
-        HashMap<User, ClientHandler> activeUsers = authHandler.getActiveUsers();
+        HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
         ClientHandler callerClient = activeUsers.get(response.caller());
         
         if (callerClient != null && callerClient.isConnected()) {
@@ -91,7 +91,7 @@ public class VideoChatHandler implements RequestHandler {
                 " to " + offer.callee().getUsername());
         
         // Forward the offer to the callee
-        HashMap<User, ClientHandler> activeUsers = authHandler.getActiveUsers();
+        HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
         ClientHandler calleeClient = activeUsers.get(offer.callee());
         
         if (calleeClient != null && calleeClient.isConnected()) {
@@ -104,7 +104,7 @@ public class VideoChatHandler implements RequestHandler {
                 " to " + answer.caller().getUsername());
         
         // Forward the answer to the caller
-        HashMap<User, ClientHandler> activeUsers = authHandler.getActiveUsers();
+        HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
         ClientHandler callerClient = activeUsers.get(answer.caller());
         
         if (callerClient != null && callerClient.isConnected()) {
@@ -130,7 +130,7 @@ public class VideoChatHandler implements RequestHandler {
                 " to " + end.receiver().getUsername());
         
         // Forward the call end message to the receiver
-        HashMap<User, ClientHandler> activeUsers = authHandler.getActiveUsers();
+        HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
         ClientHandler receiverClient = activeUsers.get(end.receiver());
         
         if (receiverClient != null && receiverClient.isConnected()) {

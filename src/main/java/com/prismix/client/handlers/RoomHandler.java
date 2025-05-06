@@ -15,16 +15,16 @@ import java.util.List;
 
 public class RoomHandler implements ResponseHandler, EventListener {
     private final EventBus eventBus;
-    private final AuthHandler authHandler;
+    private final UserHandler userHandler;
     private ArrayList<Room> rooms;
     private ArrayList<User> currentRoomUsers;
     private Room currentRoom;
 
     public record RoomUsersInfo(List<User> users, Room room) {}
 
-    public RoomHandler(EventBus eventBus, AuthHandler authHandler, HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandlers) {
+    public RoomHandler(EventBus eventBus, UserHandler userHandler, HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandlers) {
         this.eventBus = eventBus;
-        this.authHandler = authHandler;
+        this.userHandler = userHandler;
         rooms = new ArrayList<>();
         responseHandlers.put(NetworkMessage.MessageType.GET_ROOMS_RESPONSE, this);
         responseHandlers.put(NetworkMessage.MessageType.GET_ROOM_USERS_RESPONSE, this);
@@ -33,11 +33,11 @@ public class RoomHandler implements ResponseHandler, EventListener {
     }
 
     public void updateRooms() {
-        if (authHandler.getUser() == null)
+        if (userHandler.getUser() == null)
             return;
 
         try {
-            ConnectionManager.getInstance().sendMessage(new GetRoomsRequest(authHandler.getUser()));
+            ConnectionManager.getInstance().sendMessage(new GetRoomsRequest(userHandler.getUser()));
         } catch (IOException e) {
             System.out.println("Error getting users's rooms: " + e.getMessage());
         }

@@ -7,11 +7,9 @@ import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.components.themed.ThemedTextField;
-import com.prismix.client.utils.AvatarDisplayHelper;
 import com.prismix.common.model.Message;
 import com.prismix.common.model.Room;
 import com.prismix.common.model.User;
-import com.prismix.common.model.network.NetworkMessage;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,24 +23,35 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class RoomMainPanel extends ThemedPanel implements EventListener {
     private final Room room;
-    private final JPanel usersPanel;
-    private final ChatPanel chatPanel;
+    private JPanel usersPanel;
+    private ChatPanel chatPanel;
     private final AtomicBoolean isUpdating = new AtomicBoolean(false);
     private static final int USERS_PANEL_WIDTH = 200;
     private static final int MAX_USERNAME_LENGTH = 15;
     private static final int AVATAR_SIZE = 30;
     private static final AtomicLong messageSerial = new AtomicLong(0);
 
+    public RoomMainPanel() {
+        this(null);
+    }
+
     public RoomMainPanel(Room room) {
         super(Variant.BACKGROUND, true);
         this.room = room;
+        if (room == null) {
+            setLayout(new BorderLayout());
+            JLabel titleLabel = new ThemedLabel("Prismix", ThemedLabel.Size.LARGER, ThemedLabel.Variant.BACKGROUND);
+            titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            add(titleLabel, BorderLayout.CENTER);
+            return;
+        }
+
         setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
 
-        chatPanel = new ChatPanel();
+        chatPanel = new ChatPanel(false);
         c.gridx = 0;
         c.gridy = 0;
-        c.gridwidth = 1;
         c.weightx = 1.0;
         c.weighty = 1.0;
         c.fill = GridBagConstraints.BOTH;
@@ -66,39 +75,6 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         c.fill = GridBagConstraints.VERTICAL;
         add(scrollPane, c);
 
-        // Add message input panel at the bottom
-        JPanel messageInputPanel = new ThemedPanel(Variant.PRIMARY);
-        messageInputPanel.setLayout(new BorderLayout(5, 5));
-        messageInputPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-
-        ThemedTextField messageInput = new ThemedTextField("Type a message...");
-        messageInput.setPreferredSize(new Dimension(0, 30));
-        messageInputPanel.add(messageInput, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-
-        JButton fileButton = new JButton("Upload");
-        fileButton.setPreferredSize(new Dimension(80, 30));
-        fileButton.addActionListener(e -> {
-            ApplicationContext.getFileTransferHandler().selectAndSendFileToRoom(room.getId());
-        });
-        buttonPanel.add(fileButton);
-
-        JButton sendButton = new JButton("Send");
-        sendButton.setPreferredSize(new Dimension(80, 30));
-        sendButton.addActionListener(e -> sendMessage(messageInput));
-        buttonPanel.add(sendButton);
-
-        messageInputPanel.add(buttonPanel, BorderLayout.EAST);
-
-        c.gridx = 0;
-        c.gridy = 1;
-        c.gridwidth = 2;
-        c.weightx = 1.0;
-        c.weighty = 0.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        add(messageInputPanel, c);
-
         ApplicationContext.getEventBus().subscribe(this);
 
         SwingUtilities.invokeLater(() -> ApplicationContext.getRoomHandler().updateRoomUsers());
@@ -114,12 +90,13 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         long messageId = messageSerial.incrementAndGet();
         Message message = new Message(
                 (int) messageId,
-                ApplicationContext.getAuthHandler().getUser().getId(),
+                ApplicationContext.getUserHandler().getUser().getId(),
                 -1,
                 room.getId(),
                 content,
                 false,
-                Timestamp.valueOf(LocalDateTime.now()));
+                Timestamp.valueOf(LocalDateTime.now())
+        );
 
         try {
             // Send the message using the client's message handler
@@ -143,8 +120,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
 
                 for (User user : users) {
                     JPanel itemPanel = new ThemedPanel(Variant.BACKGROUND);
-                    itemPanel
-                            .setMaximumSize(new Dimension(USERS_PANEL_WIDTH, itemPanel.getPreferredSize().height + 10));
+                    itemPanel.setMaximumSize(new Dimension(USERS_PANEL_WIDTH, itemPanel.getPreferredSize().height + 10));
                     itemPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 5));
 
                     JLabel icon = new ThemedIcon(user.getAvatar(), AVATAR_SIZE, AVATAR_SIZE, ThemedIcon.Variant.CIRCLE);
@@ -155,19 +131,58 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                         username = username.substring(0, MAX_USERNAME_LENGTH - 3) + "...";
                     }
 
-                    ThemedLabel usernameLabel = new ThemedLabel(username, ThemedLabel.Size.SMALLER,
-                            ThemedLabel.Variant.BACKGROUND);
+                    ThemedLabel usernameLabel = new ThemedLabel(username, ThemedLabel.Size.SMALLER, ThemedLabel.Variant.BACKGROUND);
                     usernameLabel.setToolTipText(user.getDisplayName());
                     itemPanel.add(usernameLabel);
 
                     itemPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-                    if (!user.equals(ApplicationContext.getAuthHandler().getUser())) {
+                    if (!user.equals(ApplicationContext.getUserHandler().getUser())) {
                         itemPanel.addMouseListener(new MouseAdapter() {
                             @Override
                             public void mousePressed(MouseEvent e) {
                                 super.mousePressed(e);
                                 System.out.println("CLICK ON : " + user);
+
+                                // Check if user has existing direct messages
+                                List<Message> directMessages = ApplicationContext.getMessageHandler().getDirectMessageHistory(user);
+
+                                if (directMessages == null || directMessages.isEmpty()) {
+                                    // First time: Send an invisible message to initiate the direct chat
+                                    long messageId = messageSerial.incrementAndGet();
+                                    Message initMessage = new Message(
+                                            (int) messageId,
+                                            ApplicationContext.getUserHandler().getUser().getId(),
+                                            user.getId(),
+                                            -1,
+                                            "👋", // Invisible / greeting emoji message to initiate
+                                            true,
+                                            Timestamp.valueOf(LocalDateTime.now())
+                                    );
+
+                                    try {
+                                        ApplicationContext.getMessageHandler().sendTextMessage(initMessage);
+                                        System.out.println("Sent initial direct message to: " + user.getDisplayName());
+                                    } catch (Exception ex) {
+                                        System.err.println("Error sending initial direct message: " + ex.getMessage());
+                                    }
+                                }
+
+                                // Navigate to direct message screen with this user
+                                ApplicationContext.getEventBus().publish(new ApplicationEvent(
+                                        ApplicationEvent.Type.DIRECT_SCREEN_SELECTED
+                                ));
+
+                                // Add a delay to ensure the direct message screen is loaded before selecting the user
+                                SwingUtilities.invokeLater(() -> {
+                                    // Give the UI time to update and mount components
+                                    SwingUtilities.invokeLater(() -> {
+                                        ApplicationContext.getEventBus().publish(new ApplicationEvent(
+                                                ApplicationEvent.Type.DIRECT_USER_SELECTED,
+                                                user
+                                        ));
+                                    });
+                                });
                                 ApplicationContext.getVideoChatHandler().initiateCall(user);
                             }
 

@@ -90,7 +90,7 @@ public class UserUnreadMessageRepository {
     public static List<Message> getUnreadMessages(int userId) throws SQLException {
         List<Message> unreadMessages = new ArrayList<>();
         String sql = """
-                     SELECT m.* 
+                     SELECT m.*
                      FROM user_unread_message um JOIN message m 
                      ON um.message_id = m.id
                      WHERE um.user_id = ?

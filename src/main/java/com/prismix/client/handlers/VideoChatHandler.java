@@ -10,6 +10,9 @@ import com.prismix.common.model.network.*;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.*;
+import org.ice4j.ice.harvest.StunCandidateHarvester;
+import org.ice4j.ice.harvest.TurnCandidateHarvester;
+import org.ice4j.security.LongTermCredential;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -21,13 +24,21 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -35,18 +46,18 @@ import java.util.logging.Logger;
 
 import com.github.sarxos.webcam.Webcam;
 import org.ice4j.ice.Component;
-import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.SocketClosedException;
 
 public class VideoChatHandler implements ResponseHandler, EventListener {
     private final EventBus eventBus;
-    private final AuthHandler authHandler;
+    private final UserHandler userHandler;
     private IceMediaStream videoStream;
     private Agent iceAgent;
     private DatagramSocket udpSocket;
-    private static final String STUN_SERVER = "stun.l.google.com";
-    private static final int STUN_PORT = 19302;
+    private static final String STUN_SERVER = "stun.voipgate.com";
+    private static final int STUN_PORT = 3478;
+    private static final String METERED_API_URL = "";
     private static final Logger logger = Logger.getLogger(VideoChatHandler.class.getName());
 
     private JFrame videoFrame;
@@ -67,23 +78,32 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     private IceSocketWrapper iceSocket;
     private int calleePort;
     private InetAddress calleeAddress;
+    private long startTime = System.currentTimeMillis();
 
-    private static final int MAX_PACKET_SIZE = 1400; // Slightly less than typical MTU
-    private static final byte[] HEADER = "IMG".getBytes();
-    private static final byte[] TRAILER = "END".getBytes();
+    private static final int MAX_PACKET_SIZE = 1200; // Lower to avoid fragmentation
+    private static final String HEADER = "IMG";
+    private static final String TRAILER = "END";
     private final ByteArrayOutputStream receivedDataBuffer = new ByteArrayOutputStream();
     private boolean receivingImage = false;
+    private int frameCounter = 0;
+    private long lastSuccessfulTransmission = 0;
+    private float compressionQuality = 0.5f; // Start with medium quality (0.0-1.0)
+    private static final long ADAPTIVE_QUALITY_INTERVAL = 5000; // Check every 5 seconds
+    private static final int TARGET_FRAME_RATE = 5; // Frames per second
+    private static final long FRAME_INTERVAL = 1000 / TARGET_FRAME_RATE; // Milliseconds between frames
 
-    public VideoChatHandler(EventBus eventBus, AuthHandler authHandler, HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandler) {
+    // Flag to track if we're currently initializing the call window
+    private final AtomicBoolean initializingCallWindow = new AtomicBoolean(false);
+
+    public VideoChatHandler(EventBus eventBus, UserHandler userHandler, HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandler) {
         this.eventBus = eventBus;
-        this.authHandler = authHandler;
+        this.userHandler = userHandler;
 
         // Register for video chat message types
         responseHandler.put(NetworkMessage.MessageType.VIDEO_CALL_REQUEST, this);
         responseHandler.put(NetworkMessage.MessageType.VIDEO_CALL_RESPONSE, this);
         responseHandler.put(NetworkMessage.MessageType.VIDEO_CALL_OFFER, this);
         responseHandler.put(NetworkMessage.MessageType.VIDEO_CALL_ANSWER, this);
-//        responseHandler.put(NetworkMessage.MessageType.VIDEO_ICE_CANDIDATE, this);
         responseHandler.put(NetworkMessage.MessageType.VIDEO_CALL_END, this);
 
         eventBus.subscribe(this);
@@ -137,6 +157,8 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                     currentCallPartner = request.caller();
                     inCall.set(true);
                     System.out.println("CURRENT CALL PARTNER: " + currentCallPartner);
+                    
+                    // Initialize UI - happens first
                     initializeCallWindow();
                 }
             } catch (IOException e) {
@@ -146,9 +168,38 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     }
 
     private void initializeCallWindow() {
-        SwingUtilities.invokeLater(() -> {
+        // Prevent multiple simultaneous initialization attempts
+        if (!initializingCallWindow.compareAndSet(false, true)) {
+            System.out.println("Call window initialization already in progress");
+            return;
+        }
+        
+        if (videoFrame != null && videoFrame.isVisible()) {
+            System.out.println("Call window already initialized and visible");
+            initializingCallWindow.set(false);
+            return;
+        }
+        
+        // Dispose any existing frame before creating a new one
+        if (videoFrame != null) {
+            SwingUtilities.invokeLater(() -> {
+                videoFrame.dispose();
+                videoFrame = null;
+                createCallWindow();
+            });
+        } else {
+            SwingUtilities.invokeLater(this::createCallWindow);
+        }
+    }
+    
+    private void createCallWindow() {
+        try {
+            System.out.println("DEBUG: Creating call window for partner: " + 
+                (currentCallPartner != null ? currentCallPartner.getUsername() : "unknown"));
+                
             videoFrame = new JFrame("Video Call with " + currentCallPartner.getUsername());
             videoFrame.setSize(800, 600);
+            videoFrame.setLocationRelativeTo(null); // Center on screen
             videoFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
             videoFrame.addWindowListener(new WindowAdapter() {
                 @Override
@@ -160,32 +211,58 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                 }
             });
 
-            // Set up video panels
+            // Set up video panels with a custom repaint manager
             localVideoPanel = new JPanel() {
                 @Override
                 protected void paintComponent(Graphics g) {
                     super.paintComponent(g);
-                    System.out.println("DEBUG: Painting local panel. Image null? " + (lastCapturedImage == null));
                     if (lastCapturedImage != null) {
                         g.drawImage(lastCapturedImage, 0, 0, getWidth(), getHeight(), this);
+                    } else {
+                        // Draw placeholder if no image
+                        g.setColor(Color.DARK_GRAY);
+                        g.fillRect(0, 0, getWidth(), getHeight());
+                        g.setColor(Color.WHITE);
+                        g.drawString("Local video initializing...", 20, getHeight()/2);
                     }
+                }
+                
+                @Override
+                public void repaint() {
+                    super.repaint();
+                    // Force immediate repaint for smoother video
+                    paintImmediately(0, 0, getWidth(), getHeight());
                 }
             };
             localVideoPanel.setBorder(BorderFactory.createTitledBorder("Local Video"));
-
+            
             remoteVideoPanel = new JPanel() {
                 @Override
                 protected void paintComponent(Graphics g) {
                     super.paintComponent(g);
-                    System.out.println("DEBUG: Painting remote panel. Image null? " + (lastReceivedImage == null));
                     if (lastReceivedImage != null) {
                         g.drawImage(lastReceivedImage, 0, 0, getWidth(), getHeight(), this);
+                    } else {
+                        // Draw placeholder if no image
+                        g.setColor(Color.DARK_GRAY);
+                        g.fillRect(0, 0, getWidth(), getHeight());
+                        g.setColor(Color.WHITE);
+                        g.drawString("Waiting for remote video...", 20, getHeight()/2);
                     }
+                }
+                
+                @Override
+                public void repaint() {
+                    super.repaint();
+                    // Force immediate repaint for smoother video
+                    paintImmediately(0, 0, getWidth(), getHeight());
                 }
             };
             remoteVideoPanel.setBorder(BorderFactory.createTitledBorder("Remote Video"));
 
-            JPanel videoPanel = new JPanel(new GridLayout(1, 2));
+            // Create UI with proper layout
+            JPanel videoPanel = new JPanel(new GridLayout(1, 2, 5, 0));
+            videoPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
             videoPanel.add(localVideoPanel);
             videoPanel.add(remoteVideoPanel);
 
@@ -197,19 +274,50 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
 
             videoFrame.add(videoPanel, BorderLayout.CENTER);
             videoFrame.add(controlPanel, BorderLayout.SOUTH);
+            
+            // Make sure we're visible with focus - this is key to prevent flickering
             videoFrame.setVisible(true);
+            videoFrame.toFront();
+            videoFrame.requestFocus();
+            
+            // Create a robust timer to ensure the window stays visible and refreshes properly
+            Timer uiRefreshTimer = new Timer(100, e -> {
+                // Revalidate and repaint the window if not visible
+                if (videoFrame != null && !videoFrame.isVisible()) {
+                    System.out.println("WARNING: Video frame not visible, making visible again");
+                    videoFrame.setVisible(true);
+                    videoFrame.toFront();
+                }
+                
+                // Refresh the video panels
+                if (localVideoPanel != null) localVideoPanel.repaint();
+                if (remoteVideoPanel != null) remoteVideoPanel.repaint();
+            });
+            uiRefreshTimer.setInitialDelay(500); // Wait before starting
+            uiRefreshTimer.start();
 
-            // Start timestamp generation thread
+            // Start video capture
             startCapture();
-        });
+            
+            // Log success
+            System.out.println("DEBUG: Call window creation successful");
+        } catch (Exception e) {
+            System.err.println("ERROR creating call window: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            initializingCallWindow.set(false);
+        }
     }
 
     private void handleCallResponse(VideoCallResponse response) {
         if (response.accepted()) {
             currentCallPartner = response.callee();
             inCall.set(true);
+            
+            // First initialize UI
             initializeCallWindow();
 
+            // Then start ICE negotiation
             try {
                 String sdpOffer = initializeIceAgent();
                 ConnectionManager.getInstance().sendMessage(
@@ -234,6 +342,24 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         // Add STUN server
         iceAgent.addCandidateHarvester(new StunCandidateHarvester(
                 new TransportAddress(STUN_SERVER, STUN_PORT, Transport.UDP)));
+        System.out.println("Added STUN harvester: " + STUN_SERVER + ":" + STUN_PORT);
+                
+        // Add TURN servers
+        List<TurnServer> turnServers = fetchTurnServers();
+        for (TurnServer turnServer : turnServers) {
+            TransportAddress turnAddress = new TransportAddress(
+                turnServer.host,
+                turnServer.port,
+                Transport.UDP);
+
+            LongTermCredential credential = new LongTermCredential(
+                turnServer.username,
+                turnServer.credential);
+
+            TurnCandidateHarvester turnHarvester = new TurnCandidateHarvester(turnAddress, credential);
+            iceAgent.addCandidateHarvester(turnHarvester);
+            System.out.println("Added TURN harvester: " + turnServer.host + ":" + turnServer.port);
+        }
 
         // Create media stream
         videoStream = iceAgent.createMediaStream("video");
@@ -243,28 +369,6 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
 
         iceAgent.addStateChangeListener(new StateListener());
         return SdpUtils.createSDPDescription(iceAgent);
-
-//        org.ice4j.ice.Component videoComponent = iceAgent.createComponent(videoStream, Transport.UDP, 1, 1, 1);
-//        Component videoComponent = videoStream.getComponent(Component.RTP);
-
-        // Set up UDP socket for direct communication
-//        udpSocket = new DatagramSocket();
-//        udpSocket.setReuseAddress(true);
-
-        // Add local host candidate
-//        InetAddress localAddress = InetAddress.getLocalHost();
-
-//        TransportAddress localTransportAddress = new TransportAddress(
-//            localAddress, udpSocket.getLocalPort(), Transport.UDP);
-
-
-
-//        LocalCandidate localCandidate = new HostCandidate(
-//            localTransportAddress, videoComponent);
-//        videoComponent.addLocalCandidate(localCandidate);
-
-        // Start receiving video data
-//        startVideoReceiver();
     }
 
     private void sendMessage(String msg) {
@@ -303,49 +407,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         } catch (Exception e) {
             System.out.println("Unable to handle call answer: " + e.getMessage());
         }
-        // In a real WebRTC implementation, we would process the SDP answer
-//        System.out.println("Received call answer from " + answer.callee().getUsername());
-
     }
-//
-//    private void handleIceCandidate(VideoIceCandidate candidate) {
-////        try {
-////            // Parse and add remote candidates
-////            String[] candidatesArray = candidate.candidate().split("\\|");
-////            for (String candidateStr : candidatesArray) {
-////                if (candidateStr.isEmpty()) continue;
-////
-////                String[] parts = candidateStr.split(";");
-////                if (parts.length >= 4) {
-////                    String type = parts[0];
-////                    String ip = parts[1];
-////                    int port = Integer.parseInt(parts[2]);
-////                    Transport transport = Transport.parse(parts[3]);
-////
-////                    TransportAddress transportAddress = new TransportAddress(ip, port, transport);
-////                    org.ice4j.ice.Component component = videoStream.getComponent(1);
-////
-////                    // Create remote candidate using the component's factory method
-////                    RemoteCandidate remoteCandidate = new RemoteCandidate(
-////                        transportAddress,
-////                        component,
-////                        CandidateType.parse(type),
-////                        "foundation",
-////                        1,
-////                        1
-////                    );
-////
-////                    component.addRemoteCandidate(remoteCandidate);
-////                }
-////            }
-////
-////            // Start ICE connectivity checks
-////            iceAgent.startConnectivityEstablishment();
-////        } catch (Exception e) {
-////            logger.log(Level.SEVERE, "Error handling ICE candidate", e);
-////        }
-//    }
-//
 
     private class StateListener implements PropertyChangeListener{
         @Override
@@ -384,154 +446,63 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             // Check if we are either the sender or receiver mentioned in the end message
             SwingUtilities.invokeLater(() -> {
                 if (videoFrame != null) { // Ensure frame exists before showing message
-                    System.out.println("DEBUG: Showing call ended dialog.");
+//                    System.out.println("DEBUG: Showing call ended dialog.");
                     JOptionPane.showMessageDialog(videoFrame, // Show relative to video frame
                             end.sender().getUsername() + " ended the call.",
                             "Call Ended",
                             JOptionPane.INFORMATION_MESSAGE);
                 }
-                System.out.println("DEBUG: Calling cleanupCall from handleCallEnd.");
+//                System.out.println("DEBUG: Calling cleanupCall from handleCallEnd.");
                 cleanupCall(); // Clean up local resources immediately
             });
         } else {
-            System.out.println("DEBUG: handleCallEnd ignored - conditions not met (inCall=" + inCall.get() + ", partner=" + (currentCallPartner != null ? currentCallPartner.getUsername() : "null") + ")");
+//            System.out.println("DEBUG: handleCallEnd ignored - conditions not met (inCall=" + inCall.get() + ", partner=" + (currentCallPartner != null ? currentCallPartner.getUsername() : "null") + ")");
         }
     }
 
     public void initiateCall(User callee) {
         try {
             ConnectionManager.getInstance().sendMessage(
-                    new VideoCallRequest(authHandler.getUser(), callee));
+                    new VideoCallRequest(userHandler.getUser(), callee));
             pendingCalls.put(callee, true);
         } catch (IOException e) {
             System.err.println("Error initiating call: " + e.getMessage());
         }
     }
 
-//    private void initializeVideoCall() {
-//        inCall.set(true);
-//
-//        try {
-//            // Initialize ICE Agent
-//            initializeIceAgent();
-//
-//            // Start gathering ICE candidates
-//            iceAgent.startConnectivityEstablishment();
-//
-//            // Send our local candidates to the peer
-//            sendLocalCandidates();
-//
-//            SwingUtilities.invokeLater(() -> {
-//                videoFrame = new JFrame("Video Call with " + currentCallPartner.getUsername());
-//                videoFrame.setSize(800, 600);
-//                videoFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-//                videoFrame.addWindowListener(new WindowAdapter() {
-//                    @Override
-//                    public void windowClosing(WindowEvent e) {
-//                        // Send hangup message *if* still in call and initiated by this user closing window
-//                        if (inCall.get()) {
-//                             sendHangupMessage();
-//                        }
-//                        cleanupCall(); // Clean up local resources
-//                        // Frame disposal is handled in cleanupCall
-//                    }
-//                });
-//
-//                // Set up video panels
-//                localVideoPanel = new JPanel() {
-//                    @Override
-//                    protected void paintComponent(Graphics g) {
-//                        super.paintComponent(g);
-//                        System.out.println("DEBUG: Painting local panel. Image null? " + (lastCapturedImage == null));
-//                        if (lastCapturedImage != null) {
-//                            g.drawImage(lastCapturedImage, 0, 0, getWidth(), getHeight(), this);
-//                        }
-//                    }
-//                };
-//                localVideoPanel.setBorder(BorderFactory.createTitledBorder("Local Video"));
-//
-//                remoteVideoPanel = new JPanel() {
-//                    @Override
-//                    protected void paintComponent(Graphics g) {
-//                        super.paintComponent(g);
-//                        System.out.println("DEBUG: Painting remote panel. Image null? " + (lastReceivedImage == null));
-//                        if (lastReceivedImage != null) {
-//                            g.drawImage(lastReceivedImage, 0, 0, getWidth(), getHeight(), this);
-//                        }
-//                    }
-//                };
-//                remoteVideoPanel.setBorder(BorderFactory.createTitledBorder("Remote Video"));
-//
-//                JPanel videoPanel = new JPanel(new GridLayout(1, 2));
-//                videoPanel.add(localVideoPanel);
-//                videoPanel.add(remoteVideoPanel);
-//
-//                // Set up control panel
-//                JPanel controlPanel = new JPanel();
-//                hangupButton = new JButton("Hang Up");
-//                hangupButton.addActionListener(e -> hangupCall());
-//                controlPanel.add(hangupButton);
-//
-//                videoFrame.add(videoPanel, BorderLayout.CENTER);
-//                videoFrame.add(controlPanel, BorderLayout.SOUTH);
-//                videoFrame.setVisible(true);
-//
-//                // Start timestamp generation thread
-//                startTimestampGeneration();
-//            });
-//        } catch (Exception e) {
-//            logger.log(Level.SEVERE, "Failed to initialize video call", e);
-//            cleanupCall();
-//        }
-//    }
-//
 
-//
-//    private void sendLocalCandidates() {
-//        try {
-//            StringBuilder candidatesBuilder = new StringBuilder();
-//            for (LocalCandidate candidate : videoStream.getComponent(1).getLocalCandidates()) {
-//                candidatesBuilder.append(serializeCandidate(candidate)).append("|");
-//            }
-//
-//            String candidatesStr = candidatesBuilder.toString();
-//            ConnectionManager.getInstance().sendMessage(
-//                new VideoIceCandidate(authHandler.getUser(), currentCallPartner, candidatesStr, "video", 0));
-//        } catch (Exception e) {
-//            logger.log(Level.SEVERE, "Error sending local candidates", e);
-//        }
-//    }
-//
-//    private String serializeCandidate(LocalCandidate candidate) {
-//        TransportAddress ta = candidate.getTransportAddress();
-//        return candidate.getType() + ";" +
-//               ta.getHostAddress() + ";" +
-//               ta.getPort() + ";" +
-//               candidate.getTransport();
-//    }
-//
     private void startCapture() {
         capturing.set(true);
-        System.out.println("DEBUG: Starting timestamp generation thread.");
+        System.out.println("DEBUG: Starting video capture thread.");
         captureThread = new Thread(() -> {
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
+            long lastFrameTime = 0;
+            
             while (capturing.get()) {
                 try {
-                    // Generate timestamp image
-                    lastCapturedImage = createTimestampImage(sdf.format(new Date()));
+                    long now = System.currentTimeMillis();
+                    long elapsed = now - lastFrameTime;
+                    
+                    // Maintain target frame rate
+                    if (elapsed >= FRAME_INTERVAL) {
+                        // Generate timestamp image
+                        lastCapturedImage = createTimestampImage(sdf.format(new Date()));
 
-                    // Update local video panel
-                    if (localVideoPanel != null) {
-                        localVideoPanel.repaint();
+                        // Update local video panel
+                        if (localVideoPanel != null) {
+                            localVideoPanel.repaint();
+                        }
+
+                        // Send frame to partner
+                        sendVideoFrame(lastCapturedImage);
+                        
+                        lastFrameTime = now;
+                    } else {
+                        // Sleep until next frame is due
+                        Thread.sleep(Math.max(1, FRAME_INTERVAL - elapsed));
                     }
-
-                    // Send frame to partner
-//                    sendMessage("I WORK NOW you goofy I AM " + authHandler.getUser().getUsername());
-                    sendVideoFrame(lastCapturedImage);
-
-                    Thread.sleep(1000); // Capture frame every second
                 } catch (InterruptedException e) {
-                    System.out.println("DEBUG: Timestamp generation thread interrupted.");
+//                    System.out.println("DEBUG: Video capture thread interrupted.");
                     Thread.currentThread().interrupt(); // Preserve interrupt status
                     capturing.set(false); // Ensure loop termination
                 } catch (Exception e) {
@@ -563,7 +534,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("Arial", Font.BOLD, 24));
 
-        String userText = "User: " + (authHandler.getUser() != null ? authHandler.getUser().getUsername() : "Unknown");
+        String userText = "User: " + (userHandler.getUser() != null ? userHandler.getUser().getUsername() : "Unknown");
         String timeText = "Time: " + timestamp;
 
         // Center text
@@ -583,61 +554,142 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             return;
         }
 
+        // Apply adaptive compression based on network conditions
+        adaptCompressionQuality();
+
         try {
-            // Convert image to byte array
+            // Scale down the image for better performance if needed
+            BufferedImage scaledImage = scaleImage(image, 320, 240);
+            
+            // Convert image to byte array with compression
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "jpg", baos);
+            
+            // Use compression quality settings with JPEG
+            javax.imageio.ImageWriter jpgWriter = javax.imageio.ImageIO.getImageWritersByFormatName("jpg").next();
+            javax.imageio.ImageWriteParam writeParam = jpgWriter.getDefaultWriteParam();
+            writeParam.setCompressionMode(javax.imageio.ImageWriteParam.MODE_EXPLICIT);
+            writeParam.setCompressionQuality(compressionQuality);
+            
+            javax.imageio.stream.MemoryCacheImageOutputStream outputStream = 
+                new javax.imageio.stream.MemoryCacheImageOutputStream(baos);
+            jpgWriter.setOutput(outputStream);
+            jpgWriter.write(null, new javax.imageio.IIOImage(scaledImage, null, null), writeParam);
+            jpgWriter.dispose();
             byte[] imageData = baos.toByteArray();
             
-            System.out.println("DEBUG: Sending image of size: " + imageData.length + " bytes");
+//            System.out.println("DEBUG: Sending image " + (++frameCounter) + " of size: " + imageData.length +
+//                " bytes, quality: " + compressionQuality);
             
-            // Send start header
-            DatagramPacket headerPacket = new DatagramPacket(HEADER, HEADER.length);
+            // Create a frame ID to detect missing frames
+            String frameId = String.format("%04d", frameCounter++ % 10000);
+            byte[] frameHeader = (HEADER + frameId).getBytes();
+
+            // Send start header with frame ID
+            DatagramPacket headerPacket = new DatagramPacket(frameHeader, frameHeader.length);
             headerPacket.setPort(calleePort);
             headerPacket.setAddress(calleeAddress);
             iceSocket.send(headerPacket);
             
             // Send image in chunks
             int offset = 0;
+            int chunkId = 0;
+            int totalChunks = (int) Math.ceil(imageData.length / (double) MAX_PACKET_SIZE);
+            
             while (offset < imageData.length) {
-                int chunkSize = Math.min(MAX_PACKET_SIZE, imageData.length - offset);
-                byte[] chunk = new byte[chunkSize];
-                System.arraycopy(imageData, offset, chunk, 0, chunkSize);
+                int chunkSize = Math.min(MAX_PACKET_SIZE - 8, imageData.length - offset);
+                byte[] chunk = new byte[chunkSize + 8]; // Add 8 bytes for header
                 
-                DatagramPacket packet = new DatagramPacket(chunk, chunkSize);
+                // Add chunk header (frame ID + chunk ID + total chunks)
+                byte[] chunkHeader = String.format("%4s%02d%02d", frameId, chunkId, totalChunks).getBytes();
+                System.arraycopy(chunkHeader, 0, chunk, 0, 8);
+                System.arraycopy(imageData, offset, chunk, 8, chunkSize);
+                
+                DatagramPacket packet = new DatagramPacket(chunk, chunk.length);
                 packet.setPort(calleePort);
                 packet.setAddress(calleeAddress);
                 iceSocket.send(packet);
                 
                 offset += chunkSize;
-                // Small delay to avoid overwhelming the network
-                Thread.sleep(5);
+                chunkId++;
             }
             
-            // Send end trailer
-            DatagramPacket trailerPacket = new DatagramPacket(TRAILER, TRAILER.length);
+            // Send end trailer with frame ID
+            byte[] frameTrailer = (TRAILER + frameId).getBytes();
+            DatagramPacket trailerPacket = new DatagramPacket(frameTrailer, frameTrailer.length);
             trailerPacket.setPort(calleePort);
             trailerPacket.setAddress(calleeAddress);
             iceSocket.send(trailerPacket);
             
-            System.out.println("DEBUG: Image sent in " + (offset / MAX_PACKET_SIZE + 1) + " chunks");
+            lastSuccessfulTransmission = System.currentTimeMillis();
             
-        } catch (IOException | InterruptedException e) {
+        } catch (java.net.NoRouteToHostException e) {
+            System.out.println("ERROR: No route to host: " + calleeAddress.getHostAddress() + ":" + calleePort);
+            System.out.println("This usually means:");
+            System.out.println("1. The destination IP address is unreachable from your network");
+            System.out.println("2. A firewall is blocking outgoing UDP packets");
+            System.out.println("3. The selected ICE candidate may be using a local/private address that's not routable outside your network");
+            
+            // Try to reconnect or restart ICE negotiation
+            restartIceNegotiation();
+            
+            logger.log(Level.SEVERE, "No route to host", e);
+        } catch (IOException e) {
             logger.log(Level.WARNING, "Error sending video frame", e);
+            // Decrease quality on errors to reduce packet size
+            compressionQuality = Math.max(0.1f, compressionQuality - 0.05f);
+        }
+    }
+    
+    private BufferedImage scaleImage(BufferedImage src, int targetWidth, int targetHeight) {
+        // Don't scale if already at target size
+        if (src.getWidth() == targetWidth && src.getHeight() == targetHeight) {
+            return src;
+        }
+        
+        // Scale the image
+        BufferedImage resized = new BufferedImage(targetWidth, targetHeight, src.getType());
+        Graphics2D g = resized.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(src, 0, 0, targetWidth, targetHeight, null);
+        g.dispose();
+        return resized;
+    }
+    
+    private void adaptCompressionQuality() {
+        long now = System.currentTimeMillis();
+        if (now - lastSuccessfulTransmission > ADAPTIVE_QUALITY_INTERVAL) {
+            // Increase quality slightly if we've been sending successfully
+            compressionQuality = Math.min(0.8f, compressionQuality + 0.05f);
+            System.out.println("DEBUG: Adjusted compression quality to: " + compressionQuality);
+            lastSuccessfulTransmission = now;
         }
     }
 
     private void receiveVideoFrame(byte[] imageData) {
         try {
             ByteArrayInputStream bais = new ByteArrayInputStream(imageData);
-            lastReceivedImage = ImageIO.read(bais);
-
-            System.out.println("DEBUG: Received image successfully decoded. Image null? " + (lastReceivedImage == null));
-
-            if (remoteVideoPanel != null) {
-                //System.out.println("DEBUG: Repainting remote panel.");
-                remoteVideoPanel.repaint();
+            BufferedImage receivedImage = ImageIO.read(bais);
+            
+            if (receivedImage == null) {
+                System.out.println("ERROR: Failed to decode received image (null)");
+                return;
             }
+            
+            System.out.println("DEBUG: Received image successfully decoded. Size: " + 
+                receivedImage.getWidth() + "x" + receivedImage.getHeight());
+            
+            // Update the image in the EDT
+            final BufferedImage finalImage = receivedImage;
+            SwingUtilities.invokeLater(() -> {
+                lastReceivedImage = finalImage;
+                
+                if (remoteVideoPanel != null) {
+                    remoteVideoPanel.repaint();
+//                    System.out.println("DEBUG: Remote panel repainted");
+                } else {
+                    System.out.println("WARNING: Remote video panel is null, can't update UI");
+                }
+            });
         } catch (IOException e) {
             System.err.println("Error receiving video frame: " + e.getMessage());
         }
@@ -646,31 +698,78 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     private void startReceiver() {
         new Thread(() -> {
             byte[] buffer = new byte[MAX_PACKET_SIZE];
+            String currentFrameId = null;
+            Map<Integer, byte[]> chunks = new HashMap<>();
+            int expectedChunks = 0;
+            boolean hasReceivedValidFrame = false;
+            
             while (inCall.get()) {
                 try {
                     if (iceSocket != null) {
                         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                         iceSocket.receive(packet);
+
+                        byte[] data = Arrays.copyOf(packet.getData(), packet.getLength()); // Create a copy of the data
+                        int length = data.length;
                         
-                        // Check if it's a header or trailer packet
-                        if (packet.getLength() == HEADER.length && 
-                            new String(packet.getData(), 0, packet.getLength()).equals(new String(HEADER))) {
-                            // Start of a new image
-                            receivedDataBuffer.reset();
-                            receivingImage = true;
-                            System.out.println("DEBUG: Started receiving new image");
-                        } else if (packet.getLength() == TRAILER.length && 
-                                  new String(packet.getData(), 0, packet.getLength()).equals(new String(TRAILER))) {
-                            // End of the image
-                            if (receivingImage) {
-                                byte[] completeImageData = receivedDataBuffer.toByteArray();
-                                System.out.println("DEBUG: Finished receiving image, size: " + completeImageData.length + " bytes");
-                                receiveVideoFrame(completeImageData);
-                                receivingImage = false;
+                        if (length < 7) continue; // Skip packets smaller than smallest possble item
+                        
+                        String packetStart = new String(data, 0, 7);
+                        System.out.println("PacketStart: " + packetStart);
+                        
+                        // Check if it's a header packet (IMG + frame ID)
+                        if (packetStart.startsWith(HEADER)) {
+                            // Extract frame ID
+                            currentFrameId = new String(data, 3, 4);
+                            chunks.clear();
+                            expectedChunks = 0;
+                            System.out.println("DEBUG: Started receiving frame: " + currentFrameId);
+                        }
+
+                        // Check if it's a data chunk (frame ID + chunk ID + total chunks + data)
+                        else if (currentFrameId != null && length >= 8) {
+                            String frameId = new String(data, 0, 4);
+                            if (frameId.equals(currentFrameId)) {
+                                try {
+                                    int chunkId = Integer.parseInt(new String(data, 4, 2));
+                                    expectedChunks = Integer.parseInt(new String(data, 6, 2));
+                                    
+                                    // Store the chunk
+                                    byte[] chunkData = new byte[length - 8];
+                                    System.arraycopy(data, 8, chunkData, 0, length - 8);
+                                    chunks.put(chunkId, chunkData);
+                                    
+                                    // Check if we have all chunks
+                                    if (chunks.size() == expectedChunks) {
+                                        processCompleteFrame(chunks, expectedChunks);
+                                        chunks.clear();
+                                        hasReceivedValidFrame = true;
+                                    }
+                                } catch (NumberFormatException e) {
+                                    // Invalid chunk header, ignore
+                                    System.out.println("WARNING: Invalid chunk header: " + e.getMessage());
+                                }
                             }
-                        } else if (receivingImage) {
-                            // It's a chunk of the image
-                            receivedDataBuffer.write(packet.getData(), 0, packet.getLength());
+                        }
+                        // Check if it's a trailer packet (END + frame ID)
+                        else if (packetStart.startsWith(TRAILER)) {
+                            String frameId = new String(data, 3, 4);
+                            if (frameId.equals(currentFrameId)) {
+                                // Process any chunks we have even if incomplete
+                                if (!chunks.isEmpty() && expectedChunks > 0) {
+                                    System.out.println("DEBUG: Processing incomplete frame: " + chunks.size() + "/" + expectedChunks + " chunks");
+                                    processCompleteFrame(chunks, expectedChunks);
+                                    chunks.clear();
+                                }
+                            }
+                        }
+                        
+                        // If we haven't received any valid frames after a while, try sending a test image
+                        if (!hasReceivedValidFrame && remoteVideoPanel != null && remoteVideoPanel.isVisible()) {
+                            long uptime = System.currentTimeMillis() - startTime;
+                            if (uptime > 5000 && uptime % 5000 < 100) { // Check every 5 seconds
+                                System.out.println("WARNING: No valid frames received yet, UI may not be updating");
+                            }
                         }
                     }
                 } catch (SocketClosedException e) {
@@ -683,8 +782,71 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             }
         }).start();
     }
-//
-//    // Renamed endCall to sendHangupMessage to clarify its purpose
+    
+    private void processCompleteFrame(Map<Integer, byte[]> chunks, int totalChunks) {
+        try {
+            // Calculate total size
+            int totalSize = 0;
+            for (byte[] chunk : chunks.values()) {
+                totalSize += chunk.length;
+            }
+            
+            // Make sure we have a valid frame
+            if (totalSize <= 0) {
+                System.out.println("WARNING: Received an empty frame, ignoring");
+                return;
+            }
+            
+            // Combine chunks
+            ByteArrayOutputStream imageData = new ByteArrayOutputStream(totalSize);
+            boolean missingChunks = false;
+            
+            for (int i = 0; i < totalChunks; i++) {
+                byte[] chunk = chunks.get(i);
+                if (chunk != null) {
+                    imageData.write(chunk);
+                } else {
+                    missingChunks = true;
+                    System.out.println("WARNING: Missing chunk " + i + " of " + totalChunks);
+                }
+            }
+            
+            byte[] finalImageData = imageData.toByteArray();
+            System.out.println("DEBUG: Received " + (missingChunks ? "incomplete" : "complete") + 
+                " frame: " + finalImageData.length + " bytes");
+            
+            // Log first few bytes to help debug format issues
+//            debugImageData(finalImageData);
+            
+            // Try to decode the image
+            receiveVideoFrame(finalImageData);
+            
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error processing frame chunks", e);
+        }
+    }
+    
+    private void debugImageData(byte[] imageData) {
+        if (imageData == null || imageData.length == 0) {
+            System.out.println("DEBUG: Image data is null or empty");
+            return;
+        }
+        
+        // Check if data has valid JPEG header (0xFF 0xD8)
+        boolean validJpegHeader = (imageData.length >= 2 && 
+                                  (imageData[0] & 0xFF) == 0xFF && 
+                                  (imageData[1] & 0xFF) == 0xD8);
+        
+        System.out.println("DEBUG: Image data length: " + imageData.length + 
+                          ", Valid JPEG header: " + validJpegHeader);
+        
+        // Print first 20 bytes for debugging (as hex)
+        StringBuilder hexDump = new StringBuilder("First bytes: ");
+        for (int i = 0; i < Math.min(20, imageData.length); i++) {
+            hexDump.append(String.format("%02X ", imageData[i] & 0xFF));
+        }
+        System.out.println(hexDump.toString());
+    }
 
     // Public method to trigger hangup (e.g., from button)
     public void hangupCall() {
@@ -701,7 +863,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         if (currentCallPartner != null) {
             try {
                 ConnectionManager.getInstance().sendMessage(
-                        new VideoCallEnd(authHandler.getUser(), currentCallPartner));
+                        new VideoCallEnd(userHandler.getUser(), currentCallPartner));
                 System.out.println("Sent hangup message to " + currentCallPartner.getUsername());
             } catch (IOException e) {
                 System.err.println("Error sending call end message: " + e.getMessage());
@@ -738,17 +900,24 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             System.out.println("Capture thread stopped.");
         }
 
-        // Use SwingUtilities.invokeLater for UI updates
+        // Clean up the UI on the EDT
+        final JFrame frameToDispose = videoFrame;
+        videoFrame = null; // Clear reference first to prevent race conditions
+        
         SwingUtilities.invokeLater(() -> {
             System.out.println("DEBUG: Executing cleanupCall SwingUtilities.invokeLater.");
-            if (videoFrame != null) {
+            if (frameToDispose != null) {
                 System.out.println("Disposing video frame...");
-                videoFrame.dispose();
-                videoFrame = null;
+                frameToDispose.setVisible(false);
+                frameToDispose.dispose();
                 System.out.println("Video frame disposed.");
             } else {
                 System.out.println("DEBUG: Video frame was already null during cleanup.");
             }
+            
+            // Also clear panel references
+            localVideoPanel = null;
+            remoteVideoPanel = null;
         });
 
         System.out.println("DEBUG: Resetting partner and images in cleanupCall.");
@@ -769,5 +938,120 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     @Override
     public void onEvent(ApplicationEvent event) {
         // Handle any application events if needed
+    }
+
+    // Add Metered TURN credentials
+    private List<TurnServer> fetchTurnServers() {
+        List<TurnServer> turnServers = new ArrayList<>();
+        if (METERED_API_URL.isBlank())
+            return turnServers;
+        try {
+            // Create URL and open connection
+            URL url = new URL(METERED_API_URL);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            
+            // Check response code
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                // Read the response
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String inputLine;
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+                
+                // Parse JSON response
+                String jsonResponse = response.toString();
+                System.out.println("Metered API response: " + jsonResponse);
+                
+                // Simple JSON parsing (could use a proper JSON library)
+                // Format is like: [{"urls":"turn:server.com:port","username":"user","credential":"pass"}]
+                String[] servers = jsonResponse.split("\\{");
+                for (String server : servers) {
+                    if (server.contains("urls") && server.contains("turn:")) {
+                        String urlPart = server.substring(server.indexOf("turn:"), server.indexOf("\"", server.indexOf("turn:")));
+                        String username = server.substring(server.indexOf("username") + 11, server.indexOf("\"", server.indexOf("username") + 11));
+                        String credential = server.substring(server.indexOf("credential") + 13, server.indexOf("\"", server.indexOf("credential") + 13));
+                        
+                        // Extract host and port from URL
+                        String host = urlPart.substring(5, urlPart.lastIndexOf(":"));
+                        int port = Integer.parseInt(urlPart.substring(urlPart.lastIndexOf(":") + 1));
+                        
+                        System.out.println("Adding TURN server: " + host + ":" + port + " with username: " + username);
+                        turnServers.add(new TurnServer(host, port, username, credential));
+                    }
+                }
+            } else {
+                System.out.println("Failed to fetch TURN servers: HTTP error code: " + responseCode);
+            }
+        } catch (Exception e) {
+            System.out.println("Error fetching TURN servers: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Add fallback TURN servers if the API fails
+        if (turnServers.isEmpty()) {
+            System.out.println("Using fallback TURN servers");
+            turnServers.add(new TurnServer("turn.voipgate.com", 3478, "webrtc", "webrtc"));
+        }
+        
+        return turnServers;
+    }
+    
+    // TURN server info class
+    private static class TurnServer {
+        private final String host;
+        private final int port;
+        private final String username;
+        private final String credential;
+        
+        public TurnServer(String host, int port, String username, String credential) {
+            this.host = host;
+            this.port = port;
+            this.username = username;
+            this.credential = credential;
+        }
+    }
+
+    private void restartIceNegotiation() {
+        System.out.println("DEBUG: Attempting to restart ICE negotiation");
+        try {
+            // Get a selected pair that's more likely to work (prefer public addresses)
+            CandidatePair currentPair = null;
+            
+            for (IceMediaStream stream : iceAgent.getStreams()) {
+                if (stream.getName().contains("video")) {
+                    Component rtpComponent = stream.getComponent(Component.RTP);
+                    // First try to find a candidate with a public address
+                    for (RemoteCandidate candidate : rtpComponent.getRemoteCandidates()) {
+                        TransportAddress ta = candidate.getTransportAddress();
+                        if (!ta.getAddress().isSiteLocalAddress() && !ta.getAddress().isLinkLocalAddress()) {
+                            // Found a public address
+                            calleeAddress = ta.getAddress();
+                            calleePort = ta.getPort();
+                            System.out.println("DEBUG: Switched to public candidate: " + calleeAddress.getHostAddress() + ":" + calleePort);
+                            return;
+                        }
+                    }
+                    
+                    // If no public address found, just use the selected pair
+                    currentPair = rtpComponent.getSelectedPair();
+                    
+                    // Update connection details if we found a pair
+                    if (currentPair != null) {
+                        calleeAddress = currentPair.getRemoteCandidate().getTransportAddress().getAddress();
+                        calleePort = currentPair.getRemoteCandidate().getTransportAddress().getPort();
+                        System.out.println("DEBUG: Using fallback candidate: " + calleeAddress.getHostAddress() + ":" + calleePort);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to restart ICE negotiation", e);
+        }
     }
 }
