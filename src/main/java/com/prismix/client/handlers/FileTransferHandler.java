@@ -15,6 +15,7 @@ import java.nio.file.*;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -102,6 +103,9 @@ public class FileTransferHandler implements ResponseHandler {
         }
 
         try {
+            // Clean up any stale transfers for this file
+            cleanupStaleTransfers(fileName);
+
             FileTransferDownloadRequest request = new FileTransferDownloadRequest(
                     fileName,
                     authHandler.getUser().getId(),
@@ -110,6 +114,50 @@ public class FileTransferHandler implements ResponseHandler {
             ConnectionManager.getInstance().sendMessage(request);
         } catch (IOException e) {
             System.err.println("Error sending file download request: " + e.getMessage());
+        }
+    }
+
+    private void cleanupStaleTransfers(String fileName) {
+        try {
+            // Get all transfer records for this file
+            List<String> transferIds = FileTransferRepository.getTransferIdsForFile(fileName);
+            for (String transferId : transferIds) {
+                // Clean up file streams
+                FileOutputStream stream = fileStreams.remove(transferId);
+                if (stream != null) {
+                    try {
+                        stream.close();
+                    } catch (IOException e) {
+                        System.err.println("Error closing stale file stream: " + e.getMessage());
+                    }
+                }
+
+                // Clean up progress bars
+                ThemedProgressBar progressBar = progressBars.remove(transferId);
+                if (progressBar != null) {
+                    SwingUtilities.invokeLater(() -> {
+                        progressBar.setString("Transfer cancelled");
+                    });
+                }
+
+                // Clean up retry counters
+                chunkRetries.remove(transferId);
+
+                // Delete any incomplete files
+                try {
+                    String filePath = FileTransferRepository.getFilePath(transferId);
+                    if (filePath != null) {
+                        Files.deleteIfExists(Paths.get(filePath));
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error deleting stale file: " + e.getMessage());
+                }
+
+                // Update database record
+                FileTransferRepository.updateFileTransferStatus(transferId, "CANCELLED");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error cleaning up stale transfers: " + e.getMessage());
         }
     }
 

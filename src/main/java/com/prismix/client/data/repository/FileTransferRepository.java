@@ -160,6 +160,24 @@ public class FileTransferRepository {
         }
     }
 
+    public static List<String> getTransferIdsForFile(String fileName) throws SQLException {
+        List<String> transferIds = new ArrayList<>();
+        String sql = "SELECT transfer_id FROM file_transfer WHERE file_name = ? AND status != 'COMPLETED'";
+
+        try (Connection conn = ClientDatabaseManager.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, fileName);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                transferIds.add(rs.getString("transfer_id"));
+            }
+        }
+
+        return transferIds;
+    }
+
     public static class FileTransferInfo {
         private final int id;
         private final String fileName;
