@@ -20,6 +20,7 @@ public class UserHandler implements RequestHandler {
         requestHandlers.put(NetworkMessage.MessageType.SIGNUP_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.GET_ROOM_USERS_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.GET_USERS_INFO_REQUEST, this);
+        requestHandlers.put(NetworkMessage.MessageType.GET_ALL_USERS_REQUEST, this);
     }
 
     public HashMap<User, ClientHandler> getActiveUsers() {
@@ -59,6 +60,15 @@ public class UserHandler implements RequestHandler {
                 GetUsersInfoRequest msg = (GetUsersInfoRequest) message;
                 List<User> users = UserRepository.getUsersById(msg.userIds());
                 clientHandler.sendMessage(new GetUsersInfoResponse(users));
+            }
+            case GET_ALL_USERS_REQUEST -> {
+                try {
+                    List<User> allUsers = UserRepository.getAllUsers();
+                    clientHandler.sendMessage(new GetAllUsersResponse(allUsers));
+                } catch (Exception e) {
+                    System.err.println("Error getting all users: " + e.getMessage());
+                    clientHandler.sendMessage(new GetAllUsersResponse(new ArrayList<>()));
+                }
             }
         }
     }

@@ -2,6 +2,7 @@ package com.prismix.client.gui.components;
 
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
+import com.prismix.client.gui.components.themed.ThemedButton;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.gui.themes.Theme;
 import com.prismix.client.gui.themes.ThemeManager;
@@ -15,6 +16,7 @@ import java.util.List;
 public class DirectUserList extends ThemedPanel implements EventListener {
         private JPanel roomsPanel; // Panel to hold individual room entries
         private JScrollPane scrollPane;
+        private ThemedButton lookForUserButton;
 
         public DirectUserList() {
             super(Variant.SURFACE_ALT);
@@ -37,16 +39,31 @@ public class DirectUserList extends ThemedPanel implements EventListener {
             scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
             add(scrollPane, BorderLayout.CENTER);
+            
+            // Add Look For User button at the bottom
+            lookForUserButton = new ThemedButton("Look For User", ThemedButton.Variant.TERTIARY);
+            lookForUserButton.addActionListener(e -> showUserSearchDialog());
+            
+            JPanel buttonPanel = new ThemedPanel(Variant.SURFACE_ALT);
+            buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+            buttonPanel.add(lookForUserButton);
+            
+            add(buttonPanel, BorderLayout.SOUTH);
 
             applyTheme(ThemeManager.getCurrentTheme());
+        }
+        
+        private void showUserSearchDialog() {
+            UserSearchDialog dialog = new UserSearchDialog();
+            dialog.setVisible(true);
         }
 
         public void updateUserList(List<User> users) {
             User currentUser = ApplicationContext.getMessageHandler().getCurrentDirectUser();
-
+            
             roomsPanel.removeAll();
             for (User user : users) {
-                DirectUserEntry entry = new DirectUserEntry(user, user.equals(currentUser));
+                DirectUserEntry entry = new DirectUserEntry(user);
                 roomsPanel.add(entry);
             }
             roomsPanel.add(Box.createVerticalGlue());

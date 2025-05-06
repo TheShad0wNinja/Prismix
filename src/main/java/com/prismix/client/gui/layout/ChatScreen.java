@@ -39,8 +39,10 @@ public class ChatScreen extends JPanel implements EventListener {
             case DIRECT_SCREEN_SELECTED -> {
                 SwingUtilities.invokeLater(() -> {
                     remove(mainPanel);
+                    remove(chatHeader);
                     mainPanel = new DirectMainPanel();
                     chatHeader = new ChatHeader("Direct Messages");
+                    add(chatHeader, BorderLayout.NORTH);
                     add(mainPanel, BorderLayout.CENTER);
                     revalidate();
                     repaint();
@@ -49,7 +51,11 @@ public class ChatScreen extends JPanel implements EventListener {
             case ROOM_SELECTED -> {
                 SwingUtilities.invokeLater(() -> {
                     remove(mainPanel);
-                    mainPanel = new RoomMainPanel((Room) event.data());
+                    remove(chatHeader);
+                    Room room = (Room) event.data();
+                    mainPanel = new RoomMainPanel(room);
+                    chatHeader = new ChatHeader(room.getName(), room.getAvatar());
+                    add(chatHeader, BorderLayout.NORTH);
                     add(mainPanel, BorderLayout.CENTER);
                     revalidate();
                     repaint();
@@ -63,12 +69,4 @@ public class ChatScreen extends JPanel implements EventListener {
         super.removeNotify();
         ApplicationContext.getEventBus().unsubscribe(this);
     }
-
-    //    public void setRooms(ArrayList<Room> rooms) {
-//        setSidebar(new ChatSidebar(rooms));
-//    }
-//
-//    public void setUsers(ArrayList<User> users) {
-//        mainPanel.updateUserList(users);
-//    }
-} 
+}
