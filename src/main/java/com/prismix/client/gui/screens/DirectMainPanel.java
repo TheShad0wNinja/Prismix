@@ -3,26 +3,43 @@ package com.prismix.client.gui.screens;
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
 import com.prismix.client.gui.components.ChatPanel;
+import com.prismix.client.gui.components.DirectChatHeader;
 import com.prismix.client.gui.components.DirectUserList;
 import com.prismix.client.gui.components.themed.ThemedLabel;
 import com.prismix.client.gui.components.themed.ThemedPanel;
 import com.prismix.client.handlers.ApplicationContext;
+import com.prismix.common.model.User;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class DirectMainPanel extends JPanel implements EventListener {
     private JPanel mainPanel;
+    private DirectChatHeader chatHeader;
+    private JPanel contentPanel;
+    private final DirectUserList userListPanel;
+    
     public DirectMainPanel() {
         super();
         setLayout(new BorderLayout());
-        JPanel directUserList = new DirectUserList();
-        add(directUserList, BorderLayout.WEST);
-        mainPanel = new JPanel();
-        JLabel tmp = new ThemedLabel("Prismix", ThemedLabel.Size.TITLE, ThemedLabel.Variant.BACKGROUND);
-        tmp.setHorizontalAlignment(SwingConstants.CENTER);
-        mainPanel.add(tmp);
-        add(mainPanel, BorderLayout.CENTER);
+        
+        // Create user list panel (left sidebar)
+        userListPanel = new DirectUserList();
+        add(userListPanel, BorderLayout.WEST);
+        
+        // Create content panel for chat (will hold header and chat panel)
+        contentPanel = new JPanel(new BorderLayout());
+        
+        // Initial welcome panel
+        mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setOpaque(false);
+        JLabel welcomeLabel = new ThemedLabel("Prismix", ThemedLabel.Size.TITLE, ThemedLabel.Variant.BACKGROUND);
+        welcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        mainPanel.add(welcomeLabel);
+        
+        // Add main panel to content area
+        contentPanel.add(mainPanel, BorderLayout.CENTER);
+        add(contentPanel, BorderLayout.CENTER);
 
         ApplicationContext.getEventBus().subscribe(this);
     }
@@ -30,12 +47,23 @@ public class DirectMainPanel extends JPanel implements EventListener {
     @Override
     public void onEvent(ApplicationEvent event) {
         if (event.type() == ApplicationEvent.Type.DIRECT_USER_SELECTED) {
+            User selectedUser = (User) event.data();
+            
             SwingUtilities.invokeLater(() -> {
-                remove(mainPanel);
+                // Clear just the content panel (keeping user list intact)
+                contentPanel.removeAll();
+                
+                // Create chat header with the selected user
+                chatHeader = new DirectChatHeader(selectedUser);
+                contentPanel.add(chatHeader, BorderLayout.NORTH);
+                
+                // Create chat panel for direct messages
                 mainPanel = new ChatPanel(true);
-                add(mainPanel, BorderLayout.CENTER);
-                revalidate();
-                repaint();
+                contentPanel.add(mainPanel, BorderLayout.CENTER);
+                
+                // Update UI
+                contentPanel.revalidate();
+                contentPanel.repaint();
             });
         }
     }

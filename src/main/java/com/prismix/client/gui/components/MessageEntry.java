@@ -79,33 +79,34 @@ public class MessageEntry extends ThemedPanel {
             contentPanel.add(filePanel);
         } else {
             // Create a text area for message content with word wrapping
-            JTextArea messageTextArea = new JTextArea(message.getContent());
-            messageTextArea.setLineWrap(true);
-            messageTextArea.setWrapStyleWord(true);
-            messageTextArea.setEditable(false);
-            messageTextArea.setCursor(null);
-            messageTextArea.setFocusable(false);
-            messageTextArea.setOpaque(false);
-            
-            // Style to match ThemedLabel appearance
-            Font labelFont = UIManager.getFont("Label.font");
-            if (labelFont != null) {
-                messageTextArea.setFont(new Font(labelFont.getName(), labelFont.getStyle(), 18));
-            } else {
-                messageTextArea.setFont(new Font("SansSerif", Font.PLAIN, 18));
-            }
-            
-            // Match text color to ThemedLabel
-            messageTextArea.setForeground(getForeground());
-            
-            // Remove border
-            messageTextArea.setBorder(new EmptyBorder(0, 0, 0, 0));
-            
-            // Set alignment
-            messageTextArea.setAlignmentX(Component.LEFT_ALIGNMENT);
-            
+//            JTextArea messageTextArea = new JTextArea(message.getContent());
+//            messageTextArea.setLineWrap(true);
+//            messageTextArea.setWrapStyleWord(true);
+//            messageTextArea.setEditable(false);
+//            messageTextArea.setCursor(null);
+//            messageTextArea.setFocusable(false);
+//            messageTextArea.setOpaque(false);
+//
+//            // Style to match ThemedLabel appearance
+//            Font labelFont = UIManager.getFont("Label.font");
+//            if (labelFont != null) {
+//                messageTextArea.setFont(new Font(labelFont.getName(), labelFont.getStyle(), 18));
+//            } else {
+//                messageTextArea.setFont(new Font("SansSerif", Font.PLAIN, 18));
+//            }
+//
+//            // Match text color to ThemedLabel
+//            messageTextArea.setForeground(getForeground());
+//
+//            // Remove border
+//            messageTextArea.setBorder(new EmptyBorder(0, 0, 0, 0));
+//
+//            // Set alignment
+//            messageTextArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            JLabel messageText = new ThemedLabel(message.getContent(), ThemedLabel.Size.DEFAULT, ThemedLabel.Variant.BACKGROUND);
             // Add to content panel
-            contentPanel.add(messageTextArea);
+            contentPanel.add(messageText);
         }
 
         c.gridx = 1;
