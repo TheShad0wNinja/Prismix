@@ -339,6 +339,9 @@ public class FileTransferHandler implements ResponseHandler {
                 counter++;
             }
 
+            // Create parent directories if they don't exist
+            Files.createDirectories(filePath.getParent());
+
             System.out.println("Creating download file at: " + filePath.toAbsolutePath());
             FileOutputStream fos = new FileOutputStream(filePath.toFile());
             fileStreams.put(transferId, fos);
@@ -351,13 +354,7 @@ public class FileTransferHandler implements ResponseHandler {
 
             // Show progress bar in a dialog
             SwingUtilities.invokeLater(() -> {
-                JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(null), "Download Progress",
-                        false);
-                dialog.setLayout(new BorderLayout());
-                dialog.add(progressBar, BorderLayout.CENTER);
-                dialog.pack();
-                dialog.setLocationRelativeTo(null);
-                dialog.setVisible(true);
+                JOptionPane.showMessageDialog(null, progressBar, "File Download Progress", JOptionPane.PLAIN_MESSAGE);
             });
 
             // Create transfer record in database
@@ -373,11 +370,17 @@ public class FileTransferHandler implements ResponseHandler {
 
         } catch (IOException | SQLException e) {
             System.err.println("Error preparing for download: " + e.getMessage());
+            try {
+                ConnectionManager.getInstance()
+                        .sendMessage(new FileTransferError(transferId, "Error preparing download: " + e.getMessage()));
+            } catch (Exception ex) {
+                System.err.println("Error sending error message: " + ex.getMessage());
+            }
         }
     }
 
     private void handleTransferProgress(FileTransferProgress progress) {
-        ThemedProgressBar progressBar = progressBars.get(progress.getFileName());
+        ThemedProgressBar progressBar = progressBars.get(progress.getTransferId());
         if (progressBar != null) {
             SwingUtilities.invokeLater(() -> {
                 progressBar.setValue(progress.getProgress());
@@ -418,7 +421,9 @@ public class FileTransferHandler implements ResponseHandler {
 
             FileOutputStream fos = fileStreams.get(chunk.getTransferId());
             if (fos != null) {
-                fos.write(chunk.getData());
+                // Get a defensive copy of the data
+                byte[] data = chunk.getData();
+                fos.write(data);
                 fos.flush();
             } else {
                 System.err.println("No file stream found for transfer: " + chunk.getTransferId());
@@ -431,7 +436,8 @@ public class FileTransferHandler implements ResponseHandler {
                             // Create a new file stream
                             FileOutputStream newFos = new FileOutputStream(path.toFile(), true);
                             fileStreams.put(chunk.getTransferId(), newFos);
-                            newFos.write(chunk.getData());
+                            byte[] data = chunk.getData();
+                            newFos.write(data);
                             newFos.flush();
                         } else {
                             throw new IOException("File path exists in database but file not found: " + filePath);
@@ -445,12 +451,27 @@ public class FileTransferHandler implements ResponseHandler {
                 }
             }
 
-            // If this is the last chunk, close the file stream
+            // If this is the last chunk, verify file size and close stream
             if (chunk.getChunkNumber() == chunk.getTotalChunks() - 1) {
                 FileOutputStream stream = fileStreams.get(chunk.getTransferId());
                 if (stream != null) {
                     stream.close();
                     fileStreams.remove(chunk.getTransferId());
+
+                    // Verify final file size
+                    try {
+                        String filePath = FileTransferRepository.getFilePath(chunk.getTransferId());
+                        if (filePath != null) {
+                            long actualSize = Files.size(Paths.get(filePath));
+                            long expectedSize = FileTransferRepository.getFileSize(chunk.getTransferId());
+                            if (actualSize != expectedSize) {
+                                throw new IOException(
+                                        "File size mismatch: expected " + expectedSize + ", got " + actualSize);
+                            }
+                        }
+                    } catch (SQLException e) {
+                        System.err.println("Error verifying file size: " + e.getMessage());
+                    }
                 }
                 // Clean up retry counter
                 chunkRetries.remove(chunk.getTransferId());
@@ -462,6 +483,16 @@ public class FileTransferHandler implements ResponseHandler {
                 FileOutputStream stream = fileStreams.remove(chunk.getTransferId());
                 if (stream != null) {
                     stream.close();
+                }
+
+                // Delete incomplete file
+                try {
+                    String filePath = FileTransferRepository.getFilePath(chunk.getTransferId());
+                    if (filePath != null) {
+                        Files.deleteIfExists(Paths.get(filePath));
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Error deleting incomplete file: " + ex.getMessage());
                 }
 
                 // Send error message to server

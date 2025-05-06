@@ -126,4 +126,20 @@ public class FileTransferRepository {
         }
         return null;
     }
+
+    public static String getFileName(String transferId) throws SQLException {
+        String sql = "SELECT file_name FROM file_transfer WHERE transfer_id = ?";
+
+        try (Connection conn = ServerDatabaseManager.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, transferId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("file_name");
+            }
+            return null;
+        }
+    }
 }

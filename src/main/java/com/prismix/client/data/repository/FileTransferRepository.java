@@ -144,6 +144,22 @@ public class FileTransferRepository {
         }
     }
 
+    public static long getFileSize(String transferId) throws SQLException {
+        String sql = "SELECT file_size FROM file_transfer WHERE transfer_id = ?";
+
+        try (Connection conn = ClientDatabaseManager.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, transferId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getLong("file_size");
+            }
+            return -1;
+        }
+    }
+
     public static class FileTransferInfo {
         private final int id;
         private final String fileName;

@@ -29,7 +29,7 @@ public class ConnectionManager {
     private void startConnection() {
         try {
             System.out.println("Starting connection...");
-            socket = new Socket("102.43.33.237", 42069);
+            socket = new Socket("localhost", 42069);
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
             System.out.println("Connection Established");
