@@ -1,5 +1,6 @@
 package com.prismix.client.handlers;
 
+import com.github.eduramiba.webcamcapture.drivers.NativeDriver;
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventBus;
 import com.prismix.client.core.EventListener;
@@ -91,6 +92,10 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     private static final long ADAPTIVE_QUALITY_INTERVAL = 5000; // Check every 5 seconds
     private static final int TARGET_FRAME_RATE = 5; // Frames per second
     private static final long FRAME_INTERVAL = 1000 / TARGET_FRAME_RATE; // Milliseconds between frames
+
+    static {
+        Webcam.setDriver(new NativeDriver());
+    }
 
     // Flag to track if we're currently initializing the call window
     private final AtomicBoolean initializingCallWindow = new AtomicBoolean(false);
@@ -474,19 +479,69 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     private void startCapture() {
         capturing.set(true);
         System.out.println("DEBUG: Starting video capture thread.");
+        
+        // Initialize webcam
+        try {
+            webcam = Webcam.getDefault();
+            if (webcam == null) {
+                System.err.println("No webcam detected!");
+                lastCapturedImage = createTimestampImage("No webcam available");
+                return;
+            }
+            
+            // Get supported resolutions
+            Dimension[] supportedSizes = webcam.getViewSizes();
+            System.out.println("Supported webcam resolutions:");
+            Dimension selectedSize = null;
+            
+            // Look for 640x480 as preferred resolution
+            for (Dimension size : supportedSizes) {
+                System.out.println("- " + size.width + "x" + size.height);
+                if (size.width == 640 && size.height == 480) {
+                    selectedSize = size;
+                }
+            }
+            
+            // If 640x480 not found, use the smallest available resolution
+            if (selectedSize == null) {
+                selectedSize = supportedSizes[0]; // Start with first size
+                for (Dimension size : supportedSizes) {
+                    if (size.width * size.height < selectedSize.width * selectedSize.height) {
+                        selectedSize = size;
+                    }
+                }
+            }
+            
+            System.out.println("Selected webcam resolution: " + selectedSize.width + "x" + selectedSize.height);
+            webcam.setViewSize(selectedSize);
+            webcam.open();
+            System.out.println("Webcam opened: " + webcam.getName());
+        } catch (Exception e) {
+            System.err.println("Failed to initialize webcam: " + e.getMessage());
+            e.printStackTrace();
+            lastCapturedImage = createTimestampImage("Webcam error: " + e.getMessage());
+            return;
+        }
+
         captureThread = new Thread(() -> {
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
             long lastFrameTime = 0;
             
-            while (capturing.get()) {
+            while (capturing.get() && webcam != null) {
                 try {
                     long now = System.currentTimeMillis();
                     long elapsed = now - lastFrameTime;
                     
                     // Maintain target frame rate
                     if (elapsed >= FRAME_INTERVAL) {
-                        // Generate timestamp image
-                        lastCapturedImage = createTimestampImage(sdf.format(new Date()));
+                        // Capture from webcam
+                        if (webcam.isOpen()) {
+                            lastCapturedImage = webcam.getImage();
+                            
+                            // If capture failed, create a fallback image
+                            if (lastCapturedImage == null) {
+                                lastCapturedImage = createTimestampImage("Camera capture failed");
+                            }
+                        }
 
                         // Update local video panel
                         if (localVideoPanel != null) {
@@ -502,7 +557,6 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                         Thread.sleep(Math.max(1, FRAME_INTERVAL - elapsed));
                     }
                 } catch (InterruptedException e) {
-//                    System.out.println("DEBUG: Video capture thread interrupted.");
                     Thread.currentThread().interrupt(); // Preserve interrupt status
                     capturing.set(false); // Ensure loop termination
                 } catch (Exception e) {
@@ -512,6 +566,12 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                         capturing.set(false);
                     }
                 }
+            }
+            
+            // Close webcam when done
+            if (webcam != null && webcam.isOpen()) {
+                webcam.close();
+                System.out.println("Webcam closed");
             }
             System.out.println("Capturing finished.");
         });
@@ -882,6 +942,18 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         System.out.println("Starting call cleanup...");
 
         capturing.set(false);
+        
+        // Close webcam if open
+        if (webcam != null && webcam.isOpen()) {
+            try {
+                webcam.close();
+                System.out.println("Webcam closed.");
+            } catch (Exception e) {
+                System.err.println("Error closing webcam: " + e.getMessage());
+            }
+            webcam = null;
+        }
+        
         if (captureThread != null) {
             System.out.println("Interrupting capture thread...");
             captureThread.interrupt();
