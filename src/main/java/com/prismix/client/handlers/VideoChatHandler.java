@@ -89,7 +89,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     private long lastSuccessfulTransmission = 0;
     private float compressionQuality = 0.5f; // Start with medium quality (0.0-1.0)
     private static final long ADAPTIVE_QUALITY_INTERVAL = 5000; // Check every 5 seconds
-    private static final int TARGET_FRAME_RATE = 10; // Frames per second
+    private static final int TARGET_FRAME_RATE = 5; // Frames per second
     private static final long FRAME_INTERVAL = 1000 / TARGET_FRAME_RATE; // Milliseconds between frames
 
     // Flag to track if we're currently initializing the call window

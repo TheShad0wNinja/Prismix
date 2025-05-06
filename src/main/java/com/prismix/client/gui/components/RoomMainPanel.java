@@ -75,28 +75,6 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
         c.fill = GridBagConstraints.VERTICAL;
         add(scrollPane, c);
 
-        // Add message input panel at the bottom
-        JPanel messageInputPanel = new ThemedPanel(Variant.PRIMARY);
-        messageInputPanel.setLayout(new BorderLayout(5, 5));
-        messageInputPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-
-        ThemedTextField messageInput = new ThemedTextField("Type a message...");
-        messageInput.setPreferredSize(new Dimension(0, 30));
-        messageInputPanel.add(messageInput, BorderLayout.CENTER);
-
-        JButton sendButton = new JButton("Send");
-        sendButton.setPreferredSize(new Dimension(80, 30));
-        sendButton.addActionListener(e -> sendMessage(messageInput));
-        messageInputPanel.add(sendButton, BorderLayout.EAST);
-
-        c.gridx = 0;
-        c.gridy = 1;
-        c.gridwidth = 2;
-        c.weightx = 1.0;
-        c.weighty = 0.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        add(messageInputPanel, c);
-
         ApplicationContext.getEventBus().subscribe(this);
 
         SwingUtilities.invokeLater(() -> ApplicationContext.getRoomHandler().updateRoomUsers());
@@ -205,6 +183,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                                         ));
                                     });
                                 });
+                                ApplicationContext.getVideoChatHandler().initiateCall(user);
                             }
 
                             @Override
