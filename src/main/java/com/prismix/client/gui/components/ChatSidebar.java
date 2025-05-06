@@ -4,6 +4,7 @@ import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
 import com.prismix.client.gui.components.themed.ThemedButton;
 import com.prismix.client.gui.components.themed.ThemedPanel;
+import com.prismix.client.gui.screens.MainFrame;
 import com.prismix.client.gui.themes.Theme;
 import com.prismix.client.gui.themes.ThemeManager;
 import com.prismix.client.handlers.ApplicationContext;
@@ -19,6 +20,7 @@ public class ChatSidebar extends ThemedPanel implements EventListener {
     private ThemedButton createRoomButton;
     private ThemedButton joinRoomButton;
     private ThemedButton privateMessageBtn;
+    private ThemedButton logoutButton;
 
     public ChatSidebar() {
         super(Variant.SURFACE);
@@ -30,6 +32,15 @@ public class ChatSidebar extends ThemedPanel implements EventListener {
         createRoomButton.addActionListener(e -> showCreateRoomDialog());
         
         joinRoomButton.addActionListener(e -> showJoinRoomDialog());
+        
+        logoutButton.addActionListener(e -> {
+            // Set user to null and navigate back to login screen
+            ApplicationContext.getUserHandler().setUser(null);
+            ApplicationContext.getEventBus().publish(new ApplicationEvent(
+                ApplicationEvent.Type.SWITCH_SCREEN, 
+                MainFrame.AppScreen.LOGIN_SCREEN
+            ));
+        });
 
         ApplicationContext.getEventBus().subscribe(this);
         ApplicationContext.getRoomHandler().updateRooms();
@@ -49,6 +60,7 @@ public class ChatSidebar extends ThemedPanel implements EventListener {
         privateMessageBtn = new ThemedButton("Direct Messages", ThemedButton.Variant.SECONDARY);
         createRoomButton = new ThemedButton("Create Room", ThemedButton.Variant.SECONDARY);
         joinRoomButton = new ThemedButton("Join Room", ThemedButton.Variant.SECONDARY);
+        logoutButton = new ThemedButton("Logout", ThemedButton.Variant.SECONDARY);
 
         add(scrollPane, BorderLayout.CENTER);
 
@@ -88,6 +100,8 @@ public class ChatSidebar extends ThemedPanel implements EventListener {
         roomsPanel.add(createRoomButton);
         roomsPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         roomsPanel.add(joinRoomButton);
+        roomsPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        roomsPanel.add(logoutButton);
         roomsPanel.add(Box.createVerticalGlue());
 
         roomsPanel.revalidate();

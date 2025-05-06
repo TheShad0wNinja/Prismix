@@ -37,6 +37,10 @@ public class UserHandler implements ResponseHandler {
         return user;
     }
 
+    public void setUser(User user) {
+        this.user = user;
+    }
+
     public void login(String username) {
         ConnectionManager manager = ConnectionManager.getInstance();
         try {
