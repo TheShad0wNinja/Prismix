@@ -5,6 +5,7 @@ import com.prismix.server.core.ClientHandler;
 import com.prismix.server.core.RequestHandler;
 import com.prismix.server.data.repository.FileTransferRepository;
 import com.prismix.server.data.repository.UserRepository;
+import com.prismix.server.utils.AppDataManager;
 
 import java.io.*;
 import java.nio.file.*;
@@ -26,7 +27,7 @@ public class FileTransferHandler implements RequestHandler {
         this.transferSizes = new HashMap<>();
         this.transferredBytes = new HashMap<>();
         this.recipients = new HashMap<>();
-        this.uploadDirectory = Paths.get("uploads");
+        this.uploadDirectory = AppDataManager.getUploadsPath();
         requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_UPLOAD_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_DOWNLOAD_REQUEST, this);
@@ -34,6 +35,7 @@ public class FileTransferHandler implements RequestHandler {
 
         try {
             Files.createDirectories(uploadDirectory);
+            System.out.println("Upload directory created at: " + uploadDirectory.toAbsolutePath());
         } catch (IOException e) {
             System.err.println("Failed to create upload directory: " + e.getMessage());
         }
