@@ -181,7 +181,6 @@ public class FileTransferHandler implements RequestHandler {
                         int progress = (int) ((chunkNumber + 1.0) / totalChunks * 100);
                         client.sendMessage(new FileTransferProgress(
                                 transferId,
-                                fileName,
                                 progress,
                                 (chunkNumber + 1) * bytesRead,
                                 finalRequestedFile.length()));
@@ -260,19 +259,11 @@ public class FileTransferHandler implements RequestHandler {
             // Send progress update to recipient
             ClientHandler recipient = recipients.get(chunk.getTransferId());
             if (recipient != null && recipient.isConnected()) {
-                try {
-                    String fileName = FileTransferRepository.getFileName(chunk.getTransferId());
-                    if (fileName != null) {
-                        recipient.sendMessage(new FileTransferProgress(
-                                chunk.getTransferId(),
-                                fileName,
-                                progress,
-                                transferred,
-                                totalBytes));
-                    }
-                } catch (SQLException e) {
-                    System.err.println("Error getting file name: " + e.getMessage());
-                }
+                recipient.sendMessage(new FileTransferProgress(
+                        chunk.getTransferId(),
+                        progress,
+                        transferred,
+                        totalBytes));
             }
 
             if (chunk.getChunkNumber() == chunk.getTotalChunks() - 1) {
