@@ -6,6 +6,7 @@ public record ApplicationEvent(Type type, Object data) {
     }
     public enum Type {
         SWITCH_SCREEN,
+        AUTH_ERROR,
         DIRECT_SCREEN_SELECTED,
         USER_LOGGED_IN,
         DIRECT_USER_LIST_UPDATED,
@@ -17,6 +18,10 @@ public record ApplicationEvent(Type type, Object data) {
         END_CALL,
         MESSAGE,
         MESSAGES,
-        THEME_CHANGED
+        THEME_CHANGED,
+        FILE_TRANSFER_COMPLETE,
+        FILE_TRANSFER_ERROR,
+        ERROR,
+        ALL_ROOMS_UPDATED
     }
 }

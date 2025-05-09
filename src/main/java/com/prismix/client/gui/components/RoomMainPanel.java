@@ -2,6 +2,7 @@ package com.prismix.client.gui.components;
 
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
+import com.prismix.client.gui.themes.ThemeManager;
 import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.client.gui.components.themed.ThemedIcon;
 import com.prismix.client.gui.components.themed.ThemedLabel;
@@ -143,10 +144,10 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                             public void mousePressed(MouseEvent e) {
                                 super.mousePressed(e);
                                 System.out.println("CLICK ON : " + user);
-                                
+
                                 // Check if user has existing direct messages
                                 List<Message> directMessages = ApplicationContext.getMessageHandler().getDirectMessageHistory(user);
-                                
+
                                 if (directMessages == null || directMessages.isEmpty()) {
                                     // First time: Send an invisible message to initiate the direct chat
                                     long messageId = messageSerial.incrementAndGet();
@@ -159,7 +160,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                                             true,
                                             Timestamp.valueOf(LocalDateTime.now())
                                     );
-                                    
+
                                     try {
                                         ApplicationContext.getMessageHandler().sendTextMessage(initMessage);
                                         System.out.println("Sent initial direct message to: " + user.getDisplayName());
@@ -167,12 +168,12 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                                         System.err.println("Error sending initial direct message: " + ex.getMessage());
                                     }
                                 }
-                                
+
                                 // Navigate to direct message screen with this user
                                 ApplicationContext.getEventBus().publish(new ApplicationEvent(
                                         ApplicationEvent.Type.DIRECT_SCREEN_SELECTED
                                 ));
-                                
+
                                 // Add a delay to ensure the direct message screen is loaded before selecting the user
                                 SwingUtilities.invokeLater(() -> {
                                     // Give the UI time to update and mount components
@@ -183,19 +184,20 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                                         ));
                                     });
                                 });
-                                ApplicationContext.getVideoChatHandler().initiateCall(user);
                             }
 
                             @Override
                             public void mouseEntered(MouseEvent e) {
                                 super.mouseEntered(e);
-                                itemPanel.setBackground(Color.PINK);
+                                itemPanel.setBackground(ThemeManager.getCurrentTheme().getTertiaryColor());
+                                usernameLabel.setForeground(ThemeManager.getCurrentTheme().getOnTertiaryColor());
                             }
 
                             @Override
                             public void mouseExited(MouseEvent e) {
                                 super.mouseExited(e);
-                                itemPanel.setBackground(Color.WHITE);
+                                itemPanel.setBackground(ThemeManager.getCurrentTheme().getBackgroundColor());
+                                usernameLabel.setForeground(ThemeManager.getCurrentTheme().getOnBackgroundColor());
                             }
                         });
                     }

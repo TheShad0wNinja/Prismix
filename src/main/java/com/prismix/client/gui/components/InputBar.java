@@ -3,7 +3,8 @@ package com.prismix.client.gui.components;
 import com.prismix.client.core.ApplicationEvent;
 import com.prismix.client.core.EventListener;
 import com.prismix.client.gui.components.themed.ThemedButton;
-import com.prismix.client.gui.components.themed.ThemedTextField;
+import com.prismix.client.gui.components.themed.ThemedPanel;
+import com.prismix.client.gui.components.themed.ThemedTextArea;
 import com.prismix.client.handlers.ApplicationContext;
 import com.prismix.common.model.Message;
 
@@ -13,29 +14,59 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class InputBar extends JPanel implements EventListener {
-    private final JTextField messageInput;
+public class InputBar extends ThemedPanel implements EventListener {
+    private final ThemedTextArea messageInput;
     private final boolean isDirect;
     private static final AtomicLong messageSerial = new AtomicLong(0);
 
     public InputBar(boolean isDirect) {
+        super(Variant.SURFACE_ALT);
         this.isDirect = isDirect;
 
         setLayout(new BorderLayout(5, 5));
         setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 
-        messageInput = new ThemedTextField("", this::sendMessage);
-        messageInput.setPreferredSize(new Dimension(0, 30));
-        add(messageInput, BorderLayout.CENTER);
+        // Create a scrollable message input area for wrapped text
+        messageInput = new ThemedTextArea("", this::sendMessage);
+        
+        // Limit initial height but allow expansion
+        messageInput.setRows(1);
+        
+        // Create a scroll pane to handle overflow
+        JScrollPane scrollPane = new JScrollPane(messageInput);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setBorder(null); // Remove the scroll pane border
+        
+        // Set preferred size for the scroll pane
+        scrollPane.setPreferredSize(new Dimension(0, 35));
+        
+        add(scrollPane, BorderLayout.CENTER);
 
-        JButton sendButton = new ThemedButton("Send", ThemedButton.Variant.PRIMARY);
-        sendButton.setPreferredSize(new Dimension(80, 30));
-        add(sendButton, BorderLayout.EAST);
+        JPanel inputsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        inputsPanel.setOpaque(false);
+
+        JButton uploadButton = new ThemedButton("Upload", ThemedButton.Variant.PRIMARY, ThemedButton.Size.SMALLER);
+        uploadButton.setPreferredSize(new Dimension(60, 30));
+
+        JButton sendButton = new ThemedButton("Send", ThemedButton.Variant.PRIMARY, ThemedButton.Size.SMALLER);
+        sendButton.setPreferredSize(new Dimension(60, 30));
+
+        inputsPanel.add(uploadButton);
+        inputsPanel.add(sendButton);
+
+        add(inputsPanel, BorderLayout.EAST);
 
         ApplicationContext.getEventBus().subscribe(this);
         sendButton.addActionListener(_ -> {
             sendMessage(messageInput.getText());
             messageInput.setText("");
+        });
+        uploadButton.addActionListener((_) -> {
+            if (isDirect)
+                ApplicationContext.getFileTransferHandler().selectAndSendFileToUser(ApplicationContext.getMessageHandler().getCurrentDirectUser().getId());
+            else
+                ApplicationContext.getFileTransferHandler().selectAndSendFileToRoom(ApplicationContext.getRoomHandler().getCurrentRoom().getId());
         });
     }
 

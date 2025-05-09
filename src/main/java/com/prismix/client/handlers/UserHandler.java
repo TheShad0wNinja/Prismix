@@ -37,6 +37,10 @@ public class UserHandler implements ResponseHandler {
         return user;
     }
 
+    public void setUser(User user) {
+        this.user = user;
+    }
+
     public void login(String username) {
         ConnectionManager manager = ConnectionManager.getInstance();
         try {
@@ -70,9 +74,14 @@ public class UserHandler implements ResponseHandler {
                             ApplicationEvent.Type.SWITCH_SCREEN,
                             MainFrame.AppScreen.CHAT_SCREEN
                     ));
+                } else {
+                    eventBus.publish(new ApplicationEvent(
+                            ApplicationEvent.Type.AUTH_ERROR,
+                            res.errorMessage()
+                    ));
                 }
             }
-            case SIGNUP_REQUEST -> {
+            case SIGNUP_RESPONSE -> {
                 SignupResponse res = (SignupResponse) message;
                 if (res.status()) {
                     user = res.user();
@@ -83,6 +92,11 @@ public class UserHandler implements ResponseHandler {
                     eventBus.publish(new ApplicationEvent(
                             ApplicationEvent.Type.SWITCH_SCREEN,
                             MainFrame.AppScreen.CHAT_SCREEN
+                    ));
+                } else {
+                    eventBus.publish(new ApplicationEvent(
+                            ApplicationEvent.Type.AUTH_ERROR,
+                            res.errorMessage()
                     ));
                 }
             }

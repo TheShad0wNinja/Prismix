@@ -17,6 +17,7 @@ public class ThemedButton extends JButton implements ThemedComponent, ThemeChang
     private Font defaultFont;
 
     private final Variant variant;
+    private final Size size;
 
     private boolean isPressed;
     private boolean isHovered;
@@ -25,13 +26,22 @@ public class ThemedButton extends JButton implements ThemedComponent, ThemeChang
         PRIMARY, SECONDARY, TERTIARY, ERROR
     }
 
+    public enum Size {
+        SMALLER, DEFAULT, LARGER, TITLE
+    }
+
     public ThemedButton(String text) {
-        this(text, Variant.PRIMARY);
+        this(text, Variant.PRIMARY, Size.DEFAULT);
     }
 
     public ThemedButton(String text, Variant variant) {
+        this(text, variant, Size.DEFAULT);
+    }
+
+    public ThemedButton(String text, Variant variant, Size size) {
         super(text);
         this.variant = variant;
+        this.size = size;
         isHovered = false;
         isPressed = false;
 
@@ -117,7 +127,14 @@ public class ThemedButton extends JButton implements ThemedComponent, ThemeChang
 
         this.focusColor = defaultBackgroundColor.darker().darker();
 
-        this.defaultFont = theme.getDefaultFont().deriveFont(Font.BOLD);
+        this.defaultFont = switch(size){
+            case SMALLER -> theme.getSmallerFont();
+            case DEFAULT -> theme.getDefaultFont();
+            case LARGER -> theme.getLargerFont();
+            case TITLE -> theme.getTitleFont();
+        };
+
+        this.defaultFont.deriveFont(Font.BOLD);
 
         setCornerRadius(theme.getCornerRadius());
         setPadding(theme.getButtonPadding());

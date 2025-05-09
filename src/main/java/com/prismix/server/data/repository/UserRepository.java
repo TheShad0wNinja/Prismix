@@ -11,12 +11,13 @@ import java.util.List;
 public class UserRepository {
 
     public static User createUser(User user) throws SQLException {
-        String sql = "INSERT INTO user (username, display_name) VALUES (?, ?)";
+        String sql = "INSERT INTO user (username, display_name, avatar) VALUES (?, ?, ?)";
         try (Connection conn = ServerDatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getDisplayName());
+            stmt.setBytes(3, user.getAvatar());
 
             int affectedRows = stmt.executeUpdate();
 

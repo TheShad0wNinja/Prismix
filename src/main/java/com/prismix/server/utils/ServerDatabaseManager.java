@@ -25,7 +25,7 @@ public class ServerDatabaseManager extends DatabaseManager {
     @Override
     protected void initDatabase() {
         try (Connection conn = getDriverConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
             String createUserTableSQL = """
                     CREATE TABLE IF NOT EXISTS user (
@@ -84,6 +84,26 @@ public class ServerDatabaseManager extends DatabaseManager {
                     );
                     """;
             stmt.execute(createUserUnreadMessageTable);
+
+            String createFileTransferTable = """
+                    CREATE TABLE IF NOT EXISTS file_transfer (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        transfer_id TEXT NOT NULL UNIQUE,
+                        file_name TEXT NOT NULL,
+                        file_path TEXT NOT NULL,
+                        file_size INTEGER NOT NULL,
+                        sender_id INTEGER NOT NULL,
+                        room_id INTEGER,
+                        receiver_id INTEGER,
+                        is_direct INTEGER NOT NULL CHECK (is_direct IN (0, 1)),
+                        status TEXT NOT NULL CHECK (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED')),
+                        timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (sender_id) REFERENCES user(id),
+                        FOREIGN KEY (room_id) REFERENCES room(id),
+                        FOREIGN KEY (receiver_id) REFERENCES user(id)
+                    );
+                    """;
+            stmt.execute(createFileTransferTable);
 
         } catch (SQLException e) {
             System.out.println(e.getMessage());

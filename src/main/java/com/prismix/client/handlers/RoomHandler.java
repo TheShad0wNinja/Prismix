@@ -28,6 +28,9 @@ public class RoomHandler implements ResponseHandler, EventListener {
         rooms = new ArrayList<>();
         responseHandlers.put(NetworkMessage.MessageType.GET_ROOMS_RESPONSE, this);
         responseHandlers.put(NetworkMessage.MessageType.GET_ROOM_USERS_RESPONSE, this);
+        responseHandlers.put(NetworkMessage.MessageType.CREATE_ROOM_RESPONSE, this);
+        responseHandlers.put(NetworkMessage.MessageType.JOIN_ROOM_RESPONSE, this);
+        responseHandlers.put(NetworkMessage.MessageType.GET_ALL_ROOMS_RESPONSE, this);
 
         eventBus.subscribe(this);
     }
@@ -60,6 +63,32 @@ public class RoomHandler implements ResponseHandler, EventListener {
                 currentRoomUsers = new ArrayList<>(response.users());
                 eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.ROOM_USERS_UPDATED, currentRoomUsers));
             }
+            case CREATE_ROOM_RESPONSE -> {
+                CreateRoomResponse response = (CreateRoomResponse) message;
+                if (response.status()) {
+                    // Room creation successful, update rooms list
+                    updateRooms();
+                } else {
+                    // Room creation failed, notify user
+                    eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.ERROR, 
+                            "Failed to create room: " + response.errorMessage()));
+                }
+            }
+            case JOIN_ROOM_RESPONSE -> {
+                JoinRoomResponse response = (JoinRoomResponse) message;
+                if (response.status()) {
+                    // Room join successful, update rooms list
+                    updateRooms();
+                } else {
+                    // Room join failed, notify user
+                    eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.ERROR, 
+                            "Failed to join room: " + response.errorMessage()));
+                }
+            }
+            case GET_ALL_ROOMS_RESPONSE -> {
+                GetAllRoomsResponse response = (GetAllRoomsResponse) message;
+                eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.ALL_ROOMS_UPDATED, response.rooms()));
+            }
         }
     }
 
@@ -89,5 +118,31 @@ public class RoomHandler implements ResponseHandler, EventListener {
 
     public Room getCurrentRoom() {
         return currentRoom;
+    }
+
+    public void createRoom(String roomName, byte[] avatar) {
+        try {
+            ConnectionManager.getInstance().sendMessage(
+                    new CreateRoomRequest(userHandler.getUser(), roomName, avatar));
+        } catch (IOException e) {
+            System.err.println("Error creating room: " + e.getMessage());
+        }
+    }
+
+    public void joinRoom(int roomId) {
+        try {
+            ConnectionManager.getInstance().sendMessage(
+                    new JoinRoomRequest(userHandler.getUser(), roomId));
+        } catch (IOException e) {
+            System.err.println("Error joining room: " + e.getMessage());
+        }
+    }
+
+    public void getAllRooms() {
+        try {
+            ConnectionManager.getInstance().sendMessage(new GetAllRoomsRequest());
+        } catch (IOException e) {
+            System.err.println("Error getting all rooms: " + e.getMessage());
+        }
     }
 }
