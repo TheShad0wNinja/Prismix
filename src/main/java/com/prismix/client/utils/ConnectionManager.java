@@ -22,8 +22,8 @@ public class ConnectionManager {
     // SSL configuration
     private static final String TRUSTSTORE_PATH = "client.truststore";
     private static final String TRUSTSTORE_PASSWORD = "prismix";
-    private static final String SERVER_HOST = "102.43.33.237";
-    private static final int SERVER_PORT = 42069;
+    private static final String SERVER_HOST = "prismix.zapto.org";
+    private static final int SERVER_PORT = 9001;
 
     private ConnectionManager() {
         startConnection();

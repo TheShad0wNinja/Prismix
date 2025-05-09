@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 
 public class Server {
     private static final Logger logger = Logger.getLogger(Server.class.getName());
-    private final int PORT = 42069;
+    private final int PORT = 9001;
     private final UserHandler userHandler;
     private final HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers;
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
