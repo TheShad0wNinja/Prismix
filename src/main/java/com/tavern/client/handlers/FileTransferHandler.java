@@ -2,7 +2,7 @@ package com.tavern.client.handlers;
 
 import com.tavern.client.core.ApplicationEvent;
 import com.tavern.client.core.EventBus;
-import com.tavern.client.data.repository.FileTransferRepository;
+import com.tavern.client.repositories.FileTransferRepository;
 import com.tavern.client.gui.components.themed.ThemedProgressBar;
 import com.tavern.client.utils.ConnectionManager;
 import com.tavern.common.model.Message;

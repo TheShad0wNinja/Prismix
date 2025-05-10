@@ -1,6 +1,8 @@
 package com.tavern.server.core;
 
 import com.tavern.common.model.network.NetworkMessage;
+import com.tavern.common.utils.AppDataManager;
+import com.tavern.common.utils.PropertyFileLoader;
 import com.tavern.server.handlers.UserHandler;
 import com.tavern.server.handlers.MessageHandler;
 import com.tavern.server.handlers.RoomHandler;
@@ -12,8 +14,8 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyStore;
 import java.sql.Connection;
@@ -24,17 +26,22 @@ import java.util.logging.Logger;
 
 public class Server {
     private static final Logger logger = Logger.getLogger(Server.class.getName());
-    private final int PORT = 9001;
+    private final int port;
     private final UserHandler userHandler;
     private final HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers;
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
+    public static PropertyFileLoader properties = new PropertyFileLoader("server/server.properties");
     private SSLServerSocket serverSocket;
 
     // SSL configuration
-    private static final String KEYSTORE_PATH = "server.keystore";
-    private static final String KEYSTORE_PASSWORD = "tavern";
+    private final String keystorePath;
+    private final String keystorePassword;
 
     public Server() throws IOException {
+        keystorePath = properties.getProperty("ssl.path");
+        keystorePassword = properties.getProperty("ssl.password");
+        port = Integer.parseInt(properties.getProperty("server.port", "0"));
+
         requestHandlers = new HashMap<>();
         this.userHandler = new UserHandler(requestHandlers);
         new RoomHandler(requestHandlers);
@@ -45,15 +52,21 @@ public class Server {
         // Add shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
-        // Initialize SSL
+        initializeServer();
+    }
+
+    private void initializeServer() throws IOException {
         try {
-            // Load keystore
+            // Load keystore using AppDataManager
             KeyStore keyStore = KeyStore.getInstance("JKS");
-            keyStore.load(new FileInputStream(KEYSTORE_PATH), KEYSTORE_PASSWORD.toCharArray());
+            try (InputStream keystoreStream = AppDataManager.loadFile(keystorePath, getClass())) {
+                keyStore.load(keystoreStream, keystorePassword.toCharArray());
+                logger.info("Successfully loaded keystore from: " + keystorePath);
+            }
 
             // Create key manager factory
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, KEYSTORE_PASSWORD.toCharArray());
+            kmf.init(keyStore, keystorePassword.toCharArray());
 
             // Create SSL context
             SSLContext sslContext = SSLContext.getInstance("TLS");
@@ -61,12 +74,12 @@ public class Server {
 
             // Create server socket factory
             SSLServerSocketFactory ssf = sslContext.getServerSocketFactory();
-            serverSocket = (SSLServerSocket) ssf.createServerSocket(PORT);
-            
+            serverSocket = (SSLServerSocket) ssf.createServerSocket(port);
+
             // Require client authentication (optional, set to false if not required)
             serverSocket.setNeedClientAuth(false);
-            
-            logger.info("Secure server started on port " + PORT);
+
+            logger.info("Secure server started on port " + port);
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error initializing SSL", e);
             throw new IOException("Error initializing SSL", e);

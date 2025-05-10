@@ -1,6 +1,9 @@
 package com.tavern.client.utils;
 
+import com.tavern.client.handlers.ApplicationContext;
 import com.tavern.common.model.network.NetworkMessage;
+import com.tavern.common.utils.AppDataManager;
+import com.tavern.common.utils.PropertyFileLoader;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -19,12 +22,18 @@ public class ConnectionManager {
     private static ConnectionManager instance;
     
     // SSL configuration
-    private static final String TRUSTSTORE_PATH = "client.truststore";
-    private static final String TRUSTSTORE_PASSWORD = "tavern";
-    private static final String SERVER_HOST = "prismix.zapto.org";
-    private static final int SERVER_PORT = 9001;
+    private final String trustStorePath;
+    private final String trustStorePassword;
+    private final String serverHost;
+    private final int serverPort;
 
     private ConnectionManager() {
+        PropertyFileLoader props = ApplicationContext.getProperties();
+        serverHost = props.getProperty("server.host", "");
+        serverPort = Integer.parseInt(props.getProperty("server.port",  "0"));
+        trustStorePath = props.getProperty("ssl.path");
+        trustStorePassword = props.getProperty("ssl.password");
+
         startConnection();
     }
 
@@ -43,9 +52,12 @@ public class ConnectionManager {
         try {
             System.out.println("Starting secure connection...");
             
-            // Load truststore
+            // Load truststore using AppDataManager
             KeyStore trustStore = KeyStore.getInstance("JKS");
-            trustStore.load(new FileInputStream(TRUSTSTORE_PATH), TRUSTSTORE_PASSWORD.toCharArray());
+            try (InputStream trustStoreStream = AppDataManager.loadFile(trustStorePath, getClass())) {
+                trustStore.load(trustStoreStream, trustStorePassword.toCharArray());
+                logger.info("Successfully loaded truststore from: " + trustStorePath);
+            }
             
             // Create trust manager factory
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -57,7 +69,7 @@ public class ConnectionManager {
             
             // Create socket factory
             SSLSocketFactory sf = sslContext.getSocketFactory();
-            socket = (SSLSocket) sf.createSocket(SERVER_HOST, SERVER_PORT);
+            socket = (SSLSocket) sf.createSocket(serverHost, serverPort);
             
             // Start handshake
             socket.startHandshake();

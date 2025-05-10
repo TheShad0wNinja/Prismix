@@ -1,5 +1,6 @@
 package com.tavern.client.utils;
 
+import com.tavern.client.handlers.ApplicationContext;
 import com.tavern.common.utils.DatabaseManager;
 
 import java.sql.Connection;
@@ -10,7 +11,7 @@ public class ClientDatabaseManager extends DatabaseManager {
     public final static ClientDatabaseManager instance = new ClientDatabaseManager();
 
     private ClientDatabaseManager() {
-        super("clientChat.db");
+        super(ApplicationContext.getProperties().getProperty("db.name"));
     }
 
     public static Connection getConnection() throws SQLException {

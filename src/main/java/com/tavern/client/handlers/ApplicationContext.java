@@ -3,6 +3,7 @@ package com.tavern.client.handlers;
 import com.tavern.client.core.Client;
 import com.tavern.client.core.EventBus;
 import com.tavern.common.model.network.NetworkMessage;
+import com.tavern.common.utils.PropertyFileLoader;
 
 import java.util.HashMap;
 
@@ -17,16 +18,19 @@ public class ApplicationContext {
     private final FileTransferHandler fileTransferHandler;
     private final EventBus eventBus;
     private final HashMap<NetworkMessage.MessageType, ResponseHandler> responseHandlers;
+    private final PropertyFileLoader properties;
 
     private ApplicationContext() {
         responseHandlers = new HashMap<>();
-        this.client = new Client(responseHandlers);
         this.eventBus = new EventBus();
         this.userHandler = new UserHandler(eventBus, responseHandlers);
         this.roomHandler = new RoomHandler(eventBus, userHandler, responseHandlers);
         this.messageHandler = new MessageHandler(eventBus, userHandler, responseHandlers);
         this.videoChatHandler = new VideoChatHandler(eventBus, userHandler, responseHandlers);
         this.fileTransferHandler = new FileTransferHandler(eventBus, userHandler, responseHandlers);
+        this.properties = new PropertyFileLoader("client/application.properties");
+
+        this.client = new Client(responseHandlers);
     }
 
     private static ApplicationContext getInstance() {
@@ -66,5 +70,9 @@ public class ApplicationContext {
 
     public static FileTransferHandler getFileTransferHandler() {
         return getInstance().fileTransferHandler;
+    }
+
+    public static PropertyFileLoader getProperties() {
+        return getInstance().properties;
     }
 }

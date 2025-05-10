@@ -5,7 +5,7 @@ import com.tavern.server.core.ClientHandler;
 import com.tavern.server.core.RequestHandler;
 import com.tavern.server.data.repository.FileTransferRepository;
 import com.tavern.server.data.repository.UserRepository;
-import com.tavern.server.utils.AppDataManager;
+import com.tavern.common.utils.AppDataManager;
 
 import java.io.*;
 import java.nio.file.*;
@@ -27,7 +27,7 @@ public class FileTransferHandler implements RequestHandler {
         this.transferSizes = new HashMap<>();
         this.transferredBytes = new HashMap<>();
         this.recipients = new HashMap<>();
-        this.uploadDirectory = AppDataManager.getUploadsPath();
+        this.uploadDirectory = AppDataManager.getAppDataPath().resolve("uploads");
         requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_UPLOAD_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.FILE_TRANSFER_DOWNLOAD_REQUEST, this);

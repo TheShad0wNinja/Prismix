@@ -1,4 +1,4 @@
-package com.tavern.client.data.repository;
+package com.tavern.client.repositories;
 
 import com.tavern.common.model.network.FileTransferRequest;
 import com.tavern.common.model.network.FileTransferUploadRequest;

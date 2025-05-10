@@ -1,6 +1,7 @@
 package com.tavern.server.utils;
 
 import com.tavern.common.utils.DatabaseManager;
+import com.tavern.server.core.Server;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -10,7 +11,7 @@ public class ServerDatabaseManager extends DatabaseManager {
     private final static ServerDatabaseManager instance = new ServerDatabaseManager();
 
     private ServerDatabaseManager() {
-        super("serverChat.db");
+        super(Server.properties.getProperty("db.name"));
     }
 
     public static Connection getConnection() throws SQLException {
