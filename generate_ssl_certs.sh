@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# This script generates SSL keys and certificates for Prismix secure communication
+# This script generates SSL keys and certificates for Tavern secure communication
 
-echo "Generating SSL certificates for Prismix..."
+echo "Generating SSL certificates for Tavern..."
 
 # Set variables
 SERVER_KEYSTORE="server.keystore"
 CLIENT_TRUSTSTORE="client.truststore"
-PASSWORD="prismix"
+PASSWORD="tavern"
 VALIDITY_DAYS=3650  # 10 years
-SERVER_ALIAS="prismixserver"
+SERVER_ALIAS="tavernserver"
 
 # Create server keystore and certificate
 echo "Generating server keystore and certificate..."
@@ -21,7 +21,7 @@ keytool -genkeypair \
   -keystore $SERVER_KEYSTORE \
   -storepass $PASSWORD \
   -keypass $PASSWORD \
-  -dname "CN=Prismix Server, OU=Prismix, O=Prismix, L=Unknown, ST=Unknown, C=US"
+  -dname "CN=Tavern Server, OU=Tavern, O=Tavern, L=Unknown, ST=Unknown, C=US"
 
 # Export server certificate 
 echo "Exporting server certificate..."
