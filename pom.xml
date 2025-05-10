@@ -33,12 +33,11 @@
             <version>2.0.17</version>
         </dependency>
 
-        <!-- SLF4J Simple implementation -->
+        <!-- Logback -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>2.0.17</version>
-            <scope>test</scope>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>1.5.18</version>
         </dependency>
 
         <!-- ICE4j for NAT traversal -->
