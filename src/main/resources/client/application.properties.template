@@ -1,0 +1,7 @@
+server.host=
+server.port=
+
+ssl.path=
+ssl.password=
+
+db.name=

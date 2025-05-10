@@ -12,6 +12,9 @@ target/
 *.iml
 *.ipr
 
+### Build ###
+**/out/
+
 ### Eclipse ###
 .apt_generated
 .classpath
@@ -42,9 +45,12 @@ build/
 **/*.properties
 # But include template files
 !**/*.properties.template
+
 # Exclude keystore and certificates
 *.jks
 *.p12
 *.pem
 *.key
 *.crt
+*.truststore
+*.keystore
