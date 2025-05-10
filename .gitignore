@@ -36,3 +36,15 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Application specific ###
+# Exclude all properties files
+**/*.properties
+# But include template files
+!**/*.properties.template
+# Exclude keystore and certificates
+*.jks
+*.p12
+*.pem
+*.key
+*.crt
