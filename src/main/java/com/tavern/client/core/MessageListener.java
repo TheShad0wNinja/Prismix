@@ -2,10 +2,13 @@ package com.tavern.client.core;
 
 import com.tavern.client.utils.ConnectionManager;
 import com.tavern.common.model.network.NetworkMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class MessageListener implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(MessageListener.class);
     Client client;
 
     public MessageListener(Client client) {
@@ -18,10 +21,10 @@ public class MessageListener implements Runnable {
         while (manager.isConnected()) {
             try {
                 NetworkMessage msg = manager.receiveMessage();
-                System.out.println("Received message: " + msg);
+                logger.debug("Received message: {}", msg);
                 new Thread(() -> client.processMessage(msg)).start();
             } catch (IOException | ClassNotFoundException e) {
-                System.out.println(e.getMessage());
+                logger.error("Error receiving message: {}", e.getMessage(), e);
             }
         }
         manager.close();

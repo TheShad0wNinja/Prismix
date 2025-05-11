@@ -2,12 +2,15 @@ package com.tavern.server.utils;
 
 import com.tavern.common.utils.DatabaseManager;
 import com.tavern.server.core.Server;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 public class ServerDatabaseManager extends DatabaseManager {
+    private static final Logger logger = LoggerFactory.getLogger(ServerDatabaseManager.class);
     private final static ServerDatabaseManager instance = new ServerDatabaseManager();
 
     private ServerDatabaseManager() {
@@ -102,7 +105,7 @@ public class ServerDatabaseManager extends DatabaseManager {
             stmt.execute(createFileTransferTable);
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Error initializing database: {}", e.getMessage(), e);
         }
     }
 }

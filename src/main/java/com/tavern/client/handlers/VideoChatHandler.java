@@ -334,10 +334,6 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
 
         configureStunServers(iceAgent);
 
-        // Add STUN server
-//        iceAgent.addCandidateHarvester(new StunCandidateHarvester(
-//                new TransportAddress(STUN_SERVER, STUN_PORT, Transport.UDP)));
-//        System.out.println("Added STUN harvester: " + STUN_SERVER + ":" + STUN_PORT);
                 
         // Add TURN servers
         List<TurnServer> turnServers = fetchTurnServers();
@@ -441,17 +437,18 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             // Check if we are either the sender or receiver mentioned in the end message
             SwingUtilities.invokeLater(() -> {
                 if (videoFrame != null) { // Ensure frame exists before showing message
-//                    System.out.println("DEBUG: Showing call ended dialog.");
+//                    logger.debug("Showing call ended dialog.");
                     JOptionPane.showMessageDialog(videoFrame, // Show relative to video frame
                             end.sender().getUsername() + " ended the call.",
                             "Call Ended",
                             JOptionPane.INFORMATION_MESSAGE);
                 }
-//                System.out.println("DEBUG: Calling cleanupCall from handleCallEnd.");
+//                logger.debug("Calling cleanupCall from handleCallEnd.");
                 cleanupCall(); // Clean up local resources immediately
             });
         } else {
-//            System.out.println("DEBUG: handleCallEnd ignored - conditions not met (inCall=" + inCall.get() + ", partner=" + (currentCallPartner != null ? currentCallPartner.getUsername() : "null") + ")");
+//            logger.debug("handleCallEnd ignored - conditions not met (inCall={}, partner={})", inCall.get(), 
+//                  (currentCallPartner != null ? currentCallPartner.getUsername() : "null"));
         }
     }
 
@@ -570,7 +567,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
 
     // Helper method to create the timestamp image
     private BufferedImage createTimestampImage(String timestamp) {
-        //System.out.println("DEBUG: Creating timestamp image with time: " + timestamp);
+        // logger.debug("Creating timestamp image with time: {}", timestamp);
         int width = 320;
         int height = 240;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -627,8 +624,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             jpgWriter.dispose();
             byte[] imageData = baos.toByteArray();
             
-//            System.out.println("DEBUG: Sending image " + (++frameCounter) + " of size: " + imageData.length +
-//                " bytes, quality: " + compressionQuality);
+//            logger.debug("Sending image {} of size: {} bytes, quality: {}", (++frameCounter), imageData.length, compressionQuality);
             
             // Create a frame ID to detect missing frames
             String frameId = String.format("%04d", frameCounter++ % 10000);
@@ -735,7 +731,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                 
                 if (remoteVideoPanel != null) {
                     remoteVideoPanel.repaint();
-//                    System.out.println("DEBUG: Remote panel repainted");
+//                    logger.debug("Remote panel repainted");
                 } else {
                     logger.warn("WARNING: Remote video panel is null, can't update UI");
                 }

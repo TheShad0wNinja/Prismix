@@ -1,11 +1,13 @@
 package com.tavern.common.model.network;
 
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.zip.CRC32;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class FileTransferChunk implements NetworkMessage, Serializable {
+public class FileTransferChunk implements NetworkMessage {
     private static final long serialVersionUID = 1L;
+    private static final Logger logger = LoggerFactory.getLogger(FileTransferChunk.class);
 
     private final String transferId;
     private final byte[] data;
@@ -26,9 +28,9 @@ public class FileTransferChunk implements NetworkMessage, Serializable {
         this.checksum = crc.getValue();
 
         // Debug logging
-        System.out.println("Chunk " + chunkNumber + " created with size " + this.data.length +
-                " bytes, checksum: " + this.checksum +
-                ", first few bytes: " + bytesToHex(this.data, Math.min(16, this.data.length)));
+        logger.debug("Chunk {} created with size {} bytes, checksum: {}, first few bytes: {}", 
+                chunkNumber, this.data.length, this.checksum,
+                bytesToHex(this.data, Math.min(16, this.data.length)));
     }
 
     @Override
@@ -62,13 +64,10 @@ public class FileTransferChunk implements NetworkMessage, Serializable {
         crc.update(data, 0, data.length);
         long calculatedChecksum = crc.getValue();
 
-        // Debug logging
         if (calculatedChecksum != checksum) {
-            System.out.println("Checksum mismatch for chunk " + chunkNumber +
-                    ": expected " + checksum +
-                    ", got " + calculatedChecksum +
-                    ", data length: " + data.length +
-                    ", first few bytes: " + bytesToHex(data, Math.min(16, data.length)));
+            logger.warn("Checksum mismatch for chunk {}: expected {}, got {}, data length: {}, first few bytes: {}", 
+                    chunkNumber, checksum, calculatedChecksum, data.length,
+                    bytesToHex(data, Math.min(16, data.length)));
         }
 
         return calculatedChecksum == checksum;

@@ -6,6 +6,8 @@ import com.tavern.server.core.RequestHandler;
 import com.tavern.server.data.repository.FileTransferRepository;
 import com.tavern.server.data.repository.UserRepository;
 import com.tavern.common.utils.AppDataManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.*;
@@ -16,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class FileTransferHandler implements RequestHandler {
+    private static final Logger logger = LoggerFactory.getLogger(FileTransferHandler.class);
     private final Map<String, String> transferPaths;
     private final Map<String, Long> transferSizes;
     private final Map<String, Long> transferredBytes;
@@ -35,9 +38,9 @@ public class FileTransferHandler implements RequestHandler {
 
         try {
             Files.createDirectories(uploadDirectory);
-            System.out.println("Upload directory created at: " + uploadDirectory.toAbsolutePath());
+            logger.info("Upload directory created at: {}", uploadDirectory.toAbsolutePath());
         } catch (IOException e) {
-            System.err.println("Failed to create upload directory: " + e.getMessage());
+            logger.error("Failed to create upload directory: {}", e.getMessage(), e);
         }
     }
 
@@ -101,18 +104,18 @@ public class FileTransferHandler implements RequestHandler {
                         recipientClient.sendMessage(request);
                     }
                 } catch (Exception e) {
-                    System.err.println("Error notifying recipient: " + e.getMessage());
+                    logger.error("Error notifying recipient: {}", e.getMessage(), e);
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Database error: " + e.getMessage());
+            logger.error("Database error: {}", e.getMessage(), e);
             client.sendMessage(new FileTransferError(null, "Internal server error"));
         }
     }
 
     private void handleDownloadRequest(FileTransferDownloadRequest request, ClientHandler client) {
         try {
-            System.out.println("a7a");
+            logger.debug("Processing download request for file: {}", request.getFileName());
             String fileName = request.getFileName();
 
             // Check if the file exists in uploads
@@ -121,7 +124,8 @@ public class FileTransferHandler implements RequestHandler {
                 client.sendMessage(new FileTransferError(null, "File not found: " + fileName));
                 return;
             }
-            System.out.println("a7a2");
+            logger.debug("Searching for file matching: {}", fileName);
+            
             // Look for a file with the requested name
             File requestedFile = null;
             for (File file : files) {
@@ -136,7 +140,8 @@ public class FileTransferHandler implements RequestHandler {
                 client.sendMessage(new FileTransferError(null, "File not found: " + fileName));
                 return;
             }
-            System.out.println("a7a3");
+            logger.debug("Found file: {}", requestedFile.getName());
+            
             String transferId = UUID.randomUUID().toString();
 
             // Create record in database
@@ -147,7 +152,8 @@ public class FileTransferHandler implements RequestHandler {
                 client.sendMessage(new FileTransferError(null, "Failed to create transfer record"));
                 return;
             }
-            System.out.println("a7a4");
+            logger.debug("Created transfer record with ID: {}", transferId);
+            
             // Set up transfer data
             transferPaths.put(transferId, requestedFile.getPath());
             transferSizes.put(transferId, requestedFile.length());
@@ -196,18 +202,18 @@ public class FileTransferHandler implements RequestHandler {
                     // Update database
                     FileTransferRepository.updateFileTransferStatus(transferId, "COMPLETED");
                 } catch (Exception e) {
-                    System.err.println("Error sending file: " + e.getMessage());
+                    logger.error("Error sending file: {}", e.getMessage(), e);
                     try {
                         client.sendMessage(new FileTransferError(transferId, "Error sending file: " + e.getMessage()));
                         FileTransferRepository.updateFileTransferStatus(transferId, "FAILED");
                     } catch (Exception ex) {
-                        System.err.println("Error sending error message: " + ex.getMessage());
+                        logger.error("Error sending error message: {}", ex.getMessage(), ex);
                     }
                 }
             }).start();
 
         } catch (SQLException e) {
-            System.err.println("Database error: " + e.getMessage());
+            logger.error("Database error: {}", e.getMessage(), e);
             client.sendMessage(new FileTransferError(null, "Internal server error"));
         }
     }
@@ -223,7 +229,7 @@ public class FileTransferHandler implements RequestHandler {
                 }
                 transferPaths.put(chunk.getTransferId(), filePath);
             } catch (SQLException e) {
-                System.err.println("Database error: " + e.getMessage());
+                logger.error("Database error: {}", e.getMessage(), e);
                 client.sendMessage(new FileTransferError(chunk.getTransferId(), "Internal server error"));
                 return;
             }
@@ -231,7 +237,7 @@ public class FileTransferHandler implements RequestHandler {
 
         // Verify checksum before writing
         if (!chunk.verifyChecksum()) {
-            System.err.println("Checksum verification failed for chunk " + chunk.getChunkNumber());
+            logger.error("Checksum verification failed for chunk {}", chunk.getChunkNumber());
             // Request retry of the chunk
             client.sendMessage(new FileTransferError(chunk.getTransferId(),
                     "Data corruption detected in chunk " + chunk.getChunkNumber() + ". Please retry."));
@@ -285,8 +291,7 @@ public class FileTransferHandler implements RequestHandler {
                 try {
                     FileTransferRepository.updateFileTransferStatus(chunk.getTransferId(), "COMPLETED");
                 } catch (SQLException e) {
-                    System.err.println("Failed to update transfer status: " + e.getMessage());
-                    // Continue with cleanup even if database update fails
+                    logger.error("Error updating file transfer status: {}", e.getMessage(), e);
                 }
 
                 // Clean up
@@ -298,13 +303,13 @@ public class FileTransferHandler implements RequestHandler {
                 client.sendMessage(new FileTransferComplete(chunk.getTransferId(), null, 0, 0, 0, false, 0));
             }
         } catch (IOException e) {
-            System.err.println("Error writing file chunk: " + e.getMessage());
+            logger.error("Error writing file chunk: {}", e.getMessage(), e);
             client.sendMessage(new FileTransferError(chunk.getTransferId(),
                     "Error writing file: " + e.getMessage() + ". Please retry."));
             try {
                 FileTransferRepository.updateFileTransferStatus(chunk.getTransferId(), "FAILED");
             } catch (SQLException ex) {
-                System.err.println("Failed to update transfer status: " + ex.getMessage());
+                logger.error("Error updating file transfer status: {}", ex.getMessage(), ex);
             }
         }
     }

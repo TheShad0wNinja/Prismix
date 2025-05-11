@@ -2,12 +2,15 @@ package com.tavern.client.utils;
 
 import com.tavern.client.handlers.ApplicationContext;
 import com.tavern.common.utils.DatabaseManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 public class ClientDatabaseManager extends DatabaseManager {
+    private static final Logger logger = LoggerFactory.getLogger(ClientDatabaseManager.class);
     public final static ClientDatabaseManager instance = new ClientDatabaseManager();
 
     private ClientDatabaseManager() {
@@ -20,7 +23,7 @@ public class ClientDatabaseManager extends DatabaseManager {
 
     @Override
     protected void initDatabase() {
-        System.out.println("Initializing database");
+        logger.info("Initializing database");
         try (Connection conn = getDriverConnection();
                 Statement stmt = conn.createStatement()) {
 
@@ -62,7 +65,7 @@ public class ClientDatabaseManager extends DatabaseManager {
             stmt.executeUpdate(createFileTransferTable);
 
         } catch (SQLException e) {
-            System.out.println("Unable to connect to database:" + e.getMessage());
+            logger.error("Unable to connect to database: {}", e.getMessage(), e);
         }
     }
 }

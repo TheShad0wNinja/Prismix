@@ -3,12 +3,16 @@ package com.tavern.client.repositories;
 import com.tavern.client.handlers.ApplicationContext;
 import com.tavern.client.utils.ClientDatabaseManager;
 import com.tavern.common.model.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
 public class MessageRepository {
+    private static final Logger logger = LoggerFactory.getLogger(MessageRepository.class);
+    
     public static void createMessage(Message message) {
         String sql;
         if (message.isDirect()) {
@@ -42,7 +46,7 @@ public class MessageRepository {
             }
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Error creating message: {}", e.getMessage(), e);
         }
     }
 
@@ -66,7 +70,7 @@ public class MessageRepository {
                 messages.add(new Message(id, senderId, receiverId, roomId, content, direct, timestamp));
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Error getting messages for room {}: {}", roomId, e.getMessage(), e);
         }
         return messages;
     }
@@ -99,14 +103,14 @@ public class MessageRepository {
                 messages.add(new Message(id, senderId, receiverId, userId, content, direct, timestamp));
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Error getting direct messages with user {}: {}", userId, e.getMessage(), e);
         }
         return messages;
     }
 
 
     public static Set<Integer> getUserDirectContacts(int userId) {
-        System.out.println(userId);
+        logger.debug("Getting direct contacts for user ID: {}", userId);
         Set<Integer> contacts = new LinkedHashSet<>();
         String sql  = """
             SELECT sender_id, receiver_id
@@ -133,7 +137,7 @@ public class MessageRepository {
                 }
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Error getting user direct contacts: {}", e.getMessage(), e);
         }
         return contacts;
     }
