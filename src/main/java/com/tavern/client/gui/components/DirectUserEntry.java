@@ -167,7 +167,6 @@ public class DirectUserEntry extends ThemedPanel implements EventListener {
     public void onEvent(ApplicationEvent event) {
         if (event.type() == ApplicationEvent.Type.DIRECT_USER_SELECTED) {
             User user = (User) event.data();
-            System.out.println("LIGMA");
 
             boolean isNewSelectedUser = user != null && user.equals(this.user);
             if (isNewSelectedUser) {

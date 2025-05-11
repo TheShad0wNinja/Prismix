@@ -6,6 +6,8 @@ import com.tavern.client.handlers.ApplicationContext;
 import com.tavern.client.gui.components.themed.ThemedPanel;
 import com.tavern.common.model.Message;
 import com.tavern.common.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,6 +17,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ChatPanel extends ThemedPanel implements EventListener {
+    private static final Logger logger = LoggerFactory.getLogger(ChatPanel.class);
     private final JScrollPane chatScrollPane;
     private final JPanel mainPanel;
     private final AtomicBoolean isUpdating = new AtomicBoolean(false);
@@ -109,13 +112,13 @@ public class ChatPanel extends ThemedPanel implements EventListener {
                 if (isDirect) {
                     int currentDirectUserId = ApplicationContext.getMessageHandler().getCurrentDirectUser().getId();
                     if (msg.getReceiverId() == currentDirectUserId || msg.getSenderId() == currentDirectUserId) {
-                        System.out.println("GOT MESSAGE: " + msg);
+                        logger.debug("Got message: {}", msg);
                         messages.offer(msg);
                         processMessage();
                     }
                 } else {
                     if (msg.getRoomId() == ApplicationContext.getRoomHandler().getCurrentRoom().getId()) {
-                        System.out.println("GOT MESSAGE: " + msg);
+                        logger.debug("Got message: {}", msg);
                         messages.offer(msg);
                         processMessage();
                     }

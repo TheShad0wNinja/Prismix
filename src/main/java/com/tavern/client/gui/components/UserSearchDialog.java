@@ -15,6 +15,8 @@ import com.tavern.common.model.User;
 import com.tavern.common.model.network.GetAllUsersRequest;
 import com.tavern.common.model.network.GetAllUsersResponse;
 import com.tavern.common.model.network.NetworkMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -40,6 +42,8 @@ public class UserSearchDialog extends JDialog implements ResponseHandler {
     private final JPanel resultsPanel;
     private final List<User> allUsers = new ArrayList<>();
     private final List<User> filteredUsers = new ArrayList<>();
+    
+    private static final Logger logger = LoggerFactory.getLogger(UserSearchDialog.class);
     
     public UserSearchDialog() {
         super((Frame) null, "Search Users", true);
@@ -272,9 +276,9 @@ public class UserSearchDialog extends JDialog implements ResponseHandler {
             
             try {
                 ApplicationContext.getMessageHandler().sendTextMessage(initMessage);
-                System.out.println("Sent initial direct message to: " + user.getDisplayName());
+                logger.info("Sent initial direct message to: {}", user.getDisplayName());
             } catch (Exception ex) {
-                System.err.println("Error sending initial direct message: " + ex.getMessage());
+                logger.error("Error sending initial direct message: {}", ex.getMessage(), ex);
             }
         }
         

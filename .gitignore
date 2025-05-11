@@ -54,3 +54,5 @@ build/
 *.crt
 *.truststore
 *.keystore
+
+**/logs/

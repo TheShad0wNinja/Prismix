@@ -7,6 +7,8 @@ import com.tavern.client.utils.ConnectionManager;
 import com.tavern.client.core.EventBus;
 import com.tavern.common.model.User;
 import com.tavern.common.model.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.HashMap;
 import java.util.Set;
 
 public class UserHandler implements ResponseHandler {
+    private static final Logger logger = LoggerFactory.getLogger(UserHandler.class);
     private final EventBus eventBus;
     private User user;
 
@@ -29,7 +32,7 @@ public class UserHandler implements ResponseHandler {
         try {
             ConnectionManager.getInstance().sendMessage(new GetUsersInfoRequest(new ArrayList<>(userIds)));
         } catch (IOException e) {
-            System.out.println("Unable to send GetUsersInfoRequest: " + e.getMessage());
+            logger.error("Unable to send GetUsersInfoRequest: {}", e.getMessage(), e);
         }
     }
 
@@ -46,7 +49,7 @@ public class UserHandler implements ResponseHandler {
         try {
             manager.sendMessage(new LoginRequest(username));
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            logger.error("Failed to send login request: {}", e.getMessage(), e);
         }
     }
 
@@ -55,7 +58,7 @@ public class UserHandler implements ResponseHandler {
         try {
             manager.sendMessage(new SignupRequest(username, displayName, avatar));
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            logger.error("Failed to send signup request: {}", e.getMessage(), e);
         }
     }
 

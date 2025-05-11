@@ -11,6 +11,8 @@ import com.tavern.client.gui.components.themed.ThemedTextField;
 import com.tavern.common.model.Message;
 import com.tavern.common.model.Room;
 import com.tavern.common.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,6 +33,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
     private static final int MAX_USERNAME_LENGTH = 15;
     private static final int AVATAR_SIZE = 30;
     private static final AtomicLong messageSerial = new AtomicLong(0);
+    private static final Logger logger = LoggerFactory.getLogger(RoomMainPanel.class);
 
     public RoomMainPanel() {
         this(null);
@@ -106,7 +109,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
             // Clear input
             messageInput.setText("");
         } catch (Exception e) {
-            System.err.println("Error sending message: " + e.getMessage());
+            logger.error("Error sending message: {}", e.getMessage(), e);
         }
     }
 
@@ -143,7 +146,7 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
                             @Override
                             public void mousePressed(MouseEvent e) {
                                 super.mousePressed(e);
-                                System.out.println("CLICK ON : " + user);
+                                logger.debug("Click on user: {}", user);
 
                                 // Check if user has existing direct messages
                                 List<Message> directMessages = ApplicationContext.getMessageHandler().getDirectMessageHistory(user);
@@ -163,9 +166,9 @@ public class RoomMainPanel extends ThemedPanel implements EventListener {
 
                                     try {
                                         ApplicationContext.getMessageHandler().sendTextMessage(initMessage);
-                                        System.out.println("Sent initial direct message to: " + user.getDisplayName());
+                                        logger.info("Sent initial direct message to: {}", user.getDisplayName());
                                     } catch (Exception ex) {
-                                        System.err.println("Error sending initial direct message: " + ex.getMessage());
+                                        logger.error("Error sending initial direct message: {}", ex.getMessage(), ex);
                                     }
                                 }
 

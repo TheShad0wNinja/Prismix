@@ -13,3 +13,6 @@ ssl.password=changeit
 # Valid levels: TRACE, DEBUG, INFO, WARN, ERROR
 logging.level=INFO
 logging.file=logs/client.log
+
+# TURN configuration
+metered.url=

@@ -7,6 +7,8 @@ import com.tavern.client.core.EventListener;
 import com.tavern.common.model.Room;
 import com.tavern.common.model.User;
 import com.tavern.common.model.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class RoomHandler implements ResponseHandler, EventListener {
+    private static final Logger logger = LoggerFactory.getLogger(RoomHandler.class);
     private final EventBus eventBus;
     private final UserHandler userHandler;
     private ArrayList<Room> rooms;
@@ -42,9 +45,8 @@ public class RoomHandler implements ResponseHandler, EventListener {
         try {
             ConnectionManager.getInstance().sendMessage(new GetRoomsRequest(userHandler.getUser()));
         } catch (IOException e) {
-            System.out.println("Error getting users's rooms: " + e.getMessage());
+            logger.error("Error getting user's rooms: {}", e.getMessage(), e);
         }
-
     }
 
     public User getRoomUser(int roomId) {
@@ -103,7 +105,7 @@ public class RoomHandler implements ResponseHandler, EventListener {
         try {
             ConnectionManager.getInstance().sendMessage(new GetRoomUsersRequest(currentRoom));
         } catch (IOException e) {
-            System.out.println("Error getting room's users: " + e.getMessage());
+            logger.error("Error getting room's users: {}", e.getMessage(), e);
         }
     }
 
@@ -111,7 +113,7 @@ public class RoomHandler implements ResponseHandler, EventListener {
     public void onEvent(ApplicationEvent event) {
         if (event.type() == ApplicationEvent.Type.ROOM_SELECTED) {
             currentRoom = (Room) event.data();
-            System.out.println("Room selected: " + currentRoom);
+            logger.debug("Room selected: {}", currentRoom);
 //            updateRoomUsers();
         }
     }
@@ -125,7 +127,7 @@ public class RoomHandler implements ResponseHandler, EventListener {
             ConnectionManager.getInstance().sendMessage(
                     new CreateRoomRequest(userHandler.getUser(), roomName, avatar));
         } catch (IOException e) {
-            System.err.println("Error creating room: " + e.getMessage());
+            logger.error("Error creating room: {}", e.getMessage(), e);
         }
     }
 
@@ -134,7 +136,7 @@ public class RoomHandler implements ResponseHandler, EventListener {
             ConnectionManager.getInstance().sendMessage(
                     new JoinRoomRequest(userHandler.getUser(), roomId));
         } catch (IOException e) {
-            System.err.println("Error joining room: " + e.getMessage());
+            logger.error("Error joining room: {}", e.getMessage(), e);
         }
     }
 
@@ -142,7 +144,7 @@ public class RoomHandler implements ResponseHandler, EventListener {
         try {
             ConnectionManager.getInstance().sendMessage(new GetAllRoomsRequest());
         } catch (IOException e) {
-            System.err.println("Error getting all rooms: " + e.getMessage());
+            logger.error("Error getting all rooms: {}", e.getMessage(), e);
         }
     }
 }

@@ -9,6 +9,8 @@ import com.tavern.common.model.Message;
 import com.tavern.common.model.Room;
 import com.tavern.common.model.User;
 import com.tavern.common.model.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MessageHandler implements ResponseHandler, EventListener {
+    private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     private final ConcurrentLinkedQueue<Message> pendingMessages;
     private final ConcurrentHashMap<Message, Boolean> pendingMessageStatus;
     private Room currentRoom;
@@ -38,26 +41,28 @@ public class MessageHandler implements ResponseHandler, EventListener {
 
     void updateRoomMessages() {
         ArrayList<Message> messages = MessageRepository.getMessagesByRoomId(currentRoom.getId());
-        System.out.println("ROOM MESSAGES: " + messages);
+        logger.debug("Room messages for room {}: count={}", currentRoom.getName(), messages.size());
         eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.MESSAGES, messages));
     }
 
     void updateDirectUserMessages() {
-        System.out.println("DIRECT MESSAGES: " + currentDirectUser);
+        logger.debug("Loading direct messages with user: {}", currentDirectUser.getUsername());
         List<Message> messages = MessageRepository.getDirectMessageWithUser(currentDirectUser.getId());
-        System.out.println("DIRECT MESSAGES: " + messages);
+        logger.debug("Direct messages with {}: count={}", currentDirectUser.getUsername(), messages.size());
         eventBus.publish(new ApplicationEvent(ApplicationEvent.Type.MESSAGES, messages));
     }
 
     private synchronized void processMessage() {
         Message currMsg = pendingMessages.peek();
-        System.out.println("PENDING MESSAGE: " + currMsg);
         if (currMsg != null) {
-            System.out.println("PENDING MESSAGE STATUS: " + pendingMessageStatus.get(currMsg));
+            logger.debug("Processing pending message: {}, status={}", 
+                    currMsg.getContent().substring(0, Math.min(50, currMsg.getContent().length())), 
+                    pendingMessageStatus.get(currMsg));
         }
         
         while (currMsg != null && Boolean.TRUE.equals(pendingMessageStatus.get(currMsg))) {
-            System.out.println("ADDING NEW MESSAGE: " + currMsg);
+            logger.debug("Confirming message delivery: {}", 
+                    currMsg.getContent().substring(0, Math.min(50, currMsg.getContent().length())));
             pendingMessages.poll(); // Remove from queue after confirmation
             MessageRepository.createMessage(currMsg);
             pendingMessageStatus.remove(currMsg);
@@ -104,7 +109,7 @@ public class MessageHandler implements ResponseHandler, EventListener {
                 try {
                     ConnectionManager.getInstance().sendMessage(new GetUnreadMessagesRequest(userHandler.getUser()));
                 } catch (IOException e) {
-                    System.out.println("Unable to get unread messages");
+                    logger.error("Unable to get unread messages: {}", e.getMessage(), e);
                 }
             }
             case ROOM_USERS_UPDATED -> {
@@ -128,7 +133,7 @@ public class MessageHandler implements ResponseHandler, EventListener {
             pendingMessageStatus.put(message, false);
             ConnectionManager.getInstance().sendMessage(new SendTextMessageRequest(message));
         } catch (IOException e) {
-            System.out.println("OMAK");
+            logger.error("Failed to send text message: {}", e.getMessage(), e);
         }
     }
     

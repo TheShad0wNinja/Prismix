@@ -14,6 +14,8 @@ import org.ice4j.ice.*;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -34,8 +36,6 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import com.github.sarxos.webcam.Webcam;
 import org.ice4j.ice.Component;
@@ -43,16 +43,12 @@ import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.SocketClosedException;
 
 public class VideoChatHandler implements ResponseHandler, EventListener {
+    private static final Logger logger = LoggerFactory.getLogger(VideoChatHandler.class);
     private static final int NUMBER_OF_STUN_SERVERS_TO_USE = 30;
     private final EventBus eventBus;
     private final UserHandler userHandler;
     private IceMediaStream videoStream;
     private Agent iceAgent;
-    private DatagramSocket udpSocket;
-    private static final String STUN_SERVER = "stun.actionvoip.com";
-    private static final int STUN_PORT = 3478;
-    private static final String METERED_API_URL = "https://prismix.metered.live/api/v1/turn/credentials?apiKey=da93e8d17ba5c0c2dbfaab9e35331a73615a";
-    private static final Logger logger = Logger.getLogger(VideoChatHandler.class.getName());
 
     private JFrame videoFrame;
     private JPanel localVideoPanel;
@@ -109,7 +105,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
 
     @Override
     public void handleResponse(NetworkMessage message) {
-        System.out.println("DEBUG: Handling response type: " + message.getMessageType());
+        logger.debug("Handling response type: {}", message.getMessageType());
         switch (message.getMessageType()) {
             case VIDEO_CALL_REQUEST -> {
                 VideoCallRequest request = (VideoCallRequest) message;
@@ -133,7 +129,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
 //            }
             case VIDEO_CALL_END -> {
                 VideoCallEnd end = (VideoCallEnd) message;
-                System.out.println("DEBUG: Received VIDEO_CALL_END message");
+                logger.debug("Received VIDEO_CALL_END message");
                 handleCallEnd(end);
             }
         }
@@ -154,13 +150,13 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                 if (accepted) {
                     currentCallPartner = request.caller();
                     inCall.set(true);
-                    System.out.println("CURRENT CALL PARTNER: " + currentCallPartner);
+                    logger.debug("Current call partner: {}", currentCallPartner);
                     
                     // Initialize UI - happens first
                     initializeCallWindow();
                 }
             } catch (IOException e) {
-                System.err.println("Error responding to call request: " + e.getMessage());
+                logger.error("Error responding to call request: {}", e.getMessage(), e);
             }
         });
     }
@@ -168,12 +164,12 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     private void initializeCallWindow() {
         // Prevent multiple simultaneous initialization attempts
         if (!initializingCallWindow.compareAndSet(false, true)) {
-            System.out.println("Call window initialization already in progress");
+            logger.debug("Call window initialization already in progress");
             return;
         }
         
         if (videoFrame != null && videoFrame.isVisible()) {
-            System.out.println("Call window already initialized and visible");
+            logger.debug("Call window already initialized and visible");
             initializingCallWindow.set(false);
             return;
         }
@@ -192,7 +188,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     
     private void createCallWindow() {
         try {
-            System.out.println("DEBUG: Creating call window for partner: " + 
+            logger.debug("Creating call window for partner: {}", 
                 (currentCallPartner != null ? currentCallPartner.getUsername() : "unknown"));
                 
             videoFrame = new JFrame("Video Call with " + currentCallPartner.getUsername());
@@ -282,7 +278,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             Timer uiRefreshTimer = new Timer(100, e -> {
                 // Revalidate and repaint the window if not visible
                 if (videoFrame != null && !videoFrame.isVisible()) {
-                    System.out.println("WARNING: Video frame not visible, making visible again");
+                    logger.warn("Video frame not visible, making visible again");
                     videoFrame.setVisible(true);
                     videoFrame.toFront();
                 }
@@ -298,10 +294,9 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             startCapture();
             
             // Log success
-            System.out.println("DEBUG: Call window creation successful");
+            logger.debug("Call window creation successful");
         } catch (Exception e) {
-            System.err.println("ERROR creating call window: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("ERROR creating call window: {}", e.getMessage(), e);
         } finally {
             initializingCallWindow.set(false);
         }
@@ -321,7 +316,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                 ConnectionManager.getInstance().sendMessage(
                         new VideoCallOffer(response.caller(), response.callee(), sdpOffer));
             } catch (Throwable e) {
-                System.err.println("Error sending call offer: " + e.getMessage());
+                logger.error("Error sending call offer: {}", e.getMessage(), e);
             }
         } else {
             SwingUtilities.invokeLater(() -> {
@@ -358,7 +353,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
 
             TurnCandidateHarvester turnHarvester = new TurnCandidateHarvester(turnAddress, credential);
             iceAgent.addCandidateHarvester(turnHarvester);
-            System.out.println("Added TURN harvester: " + turnServer.host + ":" + turnServer.port);
+            logger.info("Added TURN harvester: {}", turnServer.host + ":" + turnServer.port);
         }
 
         // Create media stream
@@ -382,9 +377,9 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         packet.setPort(calleePort);
         try {
             iceSocket.send(packet);
-            System.out.println("DEBUG: Sent message: " + msg);
+            logger.debug("Sent message: {}", msg);
         } catch (IOException e) {
-            System.out.println("Unable to send message: " + msg + ": " + e.getMessage());
+            logger.warn("Unable to send message: {} : {}", msg, e.getMessage());
         }
     }
 
@@ -395,7 +390,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             iceAgent.startConnectivityEstablishment();
             ConnectionManager.getInstance().sendMessage(new VideoCallAnswer(offer.caller(), offer.callee(), sdp));
         } catch (Throwable e) {
-            System.out.println("Error sending call offer: " + e.getMessage());
+            logger.warn("Error sending call offer: {}", e.getMessage());
         }
     }
 
@@ -405,7 +400,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             SdpUtils.parseSDP(iceAgent, answer.sdpAnswer());
             iceAgent.startConnectivityEstablishment();
         } catch (Exception e) {
-            System.out.println("Unable to handle call answer: " + e.getMessage());
+            logger.warn("Unable to handle call answer: {}", e.getMessage());
         }
     }
 
@@ -415,7 +410,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             if(evt.getSource() instanceof Agent){
                 Agent agent = (Agent) evt.getSource();
                 if(agent.getState().equals(IceProcessingState.TERMINATED)) {
-                    System.out.println("Agent terminated");
+                    logger.info("Agent terminated");
                     // Your agent is connected. Terminated means ready to communicate
                     for (IceMediaStream stream: agent.getStreams()) {
                         if (stream.getName().contains("video")) {
@@ -431,8 +426,8 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                             calleePort = ta.getPort();
                         }
                     }
-                    System.out.println("CalleeAddress: " + calleeAddress.getHostAddress());
-                    System.out.println("CalleePort: " + calleePort);
+                    logger.info("CalleeAddress: {}", calleeAddress.getHostAddress());
+                    logger.info("CalleePort: {}", calleePort);
                     startCapture();
                     startReceiver();
                 }
@@ -440,7 +435,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         }
     }
     private void handleCallEnd(VideoCallEnd end) {
-        System.out.println("DEBUG: handleCallEnd entered. Sender: " + end.sender().getUsername() + ", InCall: " + inCall.get());
+        logger.debug("handleCallEnd entered. Sender: {}, InCall: {}", end.sender().getUsername(), inCall.get());
         if (inCall.get() && currentCallPartner != null &&
                 (currentCallPartner.getId() == end.sender().getId() || currentCallPartner.getId() == end.receiver().getId())) {
             // Check if we are either the sender or receiver mentioned in the end message
@@ -466,32 +461,32 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                     new VideoCallRequest(userHandler.getUser(), callee));
             pendingCalls.put(callee, true);
         } catch (IOException e) {
-            System.err.println("Error initiating call: " + e.getMessage());
+            logger.error("Error initiating call: {}", e.getMessage(), e);
         }
     }
 
 
     private void startCapture() {
         capturing.set(true);
-        System.out.println("DEBUG: Starting video capture thread.");
+        logger.debug("Starting video capture thread.");
         
         // Initialize webcam
         try {
             webcam = Webcam.getDefault();
             if (webcam == null) {
-                System.err.println("No webcam detected!");
+                logger.error("No webcam detected!");
                 lastCapturedImage = createTimestampImage("No webcam available");
                 return;
             }
             
             // Get supported resolutions
             Dimension[] supportedSizes = webcam.getViewSizes();
-            System.out.println("Supported webcam resolutions:");
+            logger.info("Supported webcam resolutions:");
             Dimension selectedSize = null;
             
             // Look for 640x480 as preferred resolution
             for (Dimension size : supportedSizes) {
-                System.out.println("- " + size.width + "x" + size.height);
+                logger.info("- {}x{}", size.width, size.height);
                 if (size.width == 640 && size.height == 480) {
                     selectedSize = size;
                 }
@@ -507,12 +502,12 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                 }
             }
             
-            System.out.println("Selected webcam resolution: " + selectedSize.width + "x" + selectedSize.height);
+            logger.info("Selected webcam resolution: {}x{}", selectedSize.width, selectedSize.height);
             webcam.setViewSize(selectedSize);
             webcam.open();
-            System.out.println("Webcam opened: " + webcam.getName());
+            logger.info("Webcam opened: {}", webcam.getName());
         } catch (Exception e) {
-            System.err.println("Failed to initialize webcam: " + e.getMessage());
+            logger.error("Failed to initialize webcam: {}", e.getMessage(), e);
             e.printStackTrace();
             lastCapturedImage = createTimestampImage("Webcam error: " + e.getMessage());
             return;
@@ -555,7 +550,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                     Thread.currentThread().interrupt(); // Preserve interrupt status
                     capturing.set(false); // Ensure loop termination
                 } catch (Exception e) {
-                    System.err.println("Error in video capture: " + e.getMessage());
+                    logger.error("Error in video capture: {}", e.getMessage(), e);
                     // Exit loop if interrupted
                     if (Thread.currentThread().isInterrupted()) {
                         capturing.set(false);
@@ -566,9 +561,9 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             // Close webcam when done
             if (webcam != null && webcam.isOpen()) {
                 webcam.close();
-                System.out.println("Webcam closed");
+                logger.info("Webcam closed");
             }
-            System.out.println("Capturing finished.");
+            logger.info("Capturing finished.");
         });
         captureThread.start();
     }
@@ -678,18 +673,18 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             lastSuccessfulTransmission = System.currentTimeMillis();
             
         } catch (java.net.NoRouteToHostException e) {
-            System.out.println("ERROR: No route to host: " + calleeAddress.getHostAddress() + ":" + calleePort);
-            System.out.println("This usually means:");
-            System.out.println("1. The destination IP address is unreachable from your network");
-            System.out.println("2. A firewall is blocking outgoing UDP packets");
-            System.out.println("3. The selected ICE candidate may be using a local/private address that's not routable outside your network");
+            logger.warn("ERROR: No route to host: {} : {}", calleeAddress.getHostAddress(), calleePort);
+            logger.warn("This usually means:");
+            logger.warn("1. The destination IP address is unreachable from your network");
+            logger.warn("2. A firewall is blocking outgoing UDP packets");
+            logger.warn("3. The selected ICE candidate may be using a local/private address that's not routable outside your network");
             
             // Try to reconnect or restart ICE negotiation
             restartIceNegotiation();
             
-            logger.log(Level.SEVERE, "No route to host", e);
+            logger.error("No route to host", e);
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Error sending video frame", e);
+            logger.warn("Error sending video frame", e);
             // Decrease quality on errors to reduce packet size
             compressionQuality = Math.max(0.1f, compressionQuality - 0.05f);
         }
@@ -715,7 +710,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         if (now - lastSuccessfulTransmission > ADAPTIVE_QUALITY_INTERVAL) {
             // Increase quality slightly if we've been sending successfully
             compressionQuality = Math.min(0.8f, compressionQuality + 0.05f);
-            System.out.println("DEBUG: Adjusted compression quality to: " + compressionQuality);
+            logger.debug("Adjusted compression quality to: {}", compressionQuality);
             lastSuccessfulTransmission = now;
         }
     }
@@ -726,12 +721,12 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             BufferedImage receivedImage = ImageIO.read(bais);
             
             if (receivedImage == null) {
-                System.out.println("ERROR: Failed to decode received image (null)");
+                logger.warn("ERROR: Failed to decode received image (null)");
                 return;
             }
             
-            System.out.println("DEBUG: Received image successfully decoded. Size: " + 
-                receivedImage.getWidth() + "x" + receivedImage.getHeight());
+            logger.debug("Received image successfully decoded. Size: {}x{}", 
+                receivedImage.getWidth(), receivedImage.getHeight());
             
             // Update the image in the EDT
             final BufferedImage finalImage = receivedImage;
@@ -742,11 +737,11 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                     remoteVideoPanel.repaint();
 //                    System.out.println("DEBUG: Remote panel repainted");
                 } else {
-                    System.out.println("WARNING: Remote video panel is null, can't update UI");
+                    logger.warn("WARNING: Remote video panel is null, can't update UI");
                 }
             });
         } catch (IOException e) {
-            System.err.println("Error receiving video frame: " + e.getMessage());
+            logger.error("Error receiving video frame: {}", e.getMessage(), e);
         }
     }
 
@@ -770,7 +765,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                         if (length < 7) continue; // Skip packets smaller than smallest possble item
                         
                         String packetStart = new String(data, 0, 7);
-                        System.out.println("PacketStart: " + packetStart);
+                        logger.debug("PacketStart: {}", packetStart);
                         
                         // Check if it's a header packet (IMG + frame ID)
                         if (packetStart.startsWith(HEADER)) {
@@ -778,7 +773,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                             currentFrameId = new String(data, 3, 4);
                             chunks.clear();
                             expectedChunks = 0;
-                            System.out.println("DEBUG: Started receiving frame: " + currentFrameId);
+                            logger.debug("Started receiving frame: {}", currentFrameId);
                         }
 
                         // Check if it's a data chunk (frame ID + chunk ID + total chunks + data)
@@ -802,7 +797,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                                     }
                                 } catch (NumberFormatException e) {
                                     // Invalid chunk header, ignore
-                                    System.out.println("WARNING: Invalid chunk header: " + e.getMessage());
+                                    logger.warn("WARNING: Invalid chunk header: {}", e.getMessage());
                                 }
                             }
                         }
@@ -812,7 +807,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                             if (frameId.equals(currentFrameId)) {
                                 // Process any chunks we have even if incomplete
                                 if (!chunks.isEmpty() && expectedChunks > 0) {
-                                    System.out.println("DEBUG: Processing incomplete frame: " + chunks.size() + "/" + expectedChunks + " chunks");
+                                    logger.debug("Processing incomplete frame: {} / {} chunks", chunks.size(), expectedChunks);
                                     processCompleteFrame(chunks, expectedChunks);
                                     chunks.clear();
                                 }
@@ -823,15 +818,15 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                         if (!hasReceivedValidFrame && remoteVideoPanel != null && remoteVideoPanel.isVisible()) {
                             long uptime = System.currentTimeMillis() - startTime;
                             if (uptime > 5000 && uptime % 5000 < 100) { // Check every 5 seconds
-                                System.out.println("WARNING: No valid frames received yet, UI may not be updating");
+                                logger.warn("WARNING: No valid frames received yet, UI may not be updating");
                             }
                         }
                     }
                 } catch (SocketClosedException e) {
-                    System.out.println("DEBUG: Socket closed");
+                    logger.debug("DEBUG: Socket closed");
                 } catch (IOException e) {
                     if (iceSocket != null) {
-                        logger.log(Level.WARNING, "Error receiving data", e);
+                        logger.warn("Error receiving data", e);
                     }
                 }
             }
@@ -848,7 +843,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             
             // Make sure we have a valid frame
             if (totalSize <= 0) {
-                System.out.println("WARNING: Received an empty frame, ignoring");
+                logger.warn("WARNING: Received an empty frame, ignoring");
                 return;
             }
             
@@ -862,13 +857,12 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                     imageData.write(chunk);
                 } else {
                     missingChunks = true;
-                    System.out.println("WARNING: Missing chunk " + i + " of " + totalChunks);
+                    logger.warn("WARNING: Missing chunk {} of {}", i, totalChunks);
                 }
             }
             
             byte[] finalImageData = imageData.toByteArray();
-            System.out.println("DEBUG: Received " + (missingChunks ? "incomplete" : "complete") + 
-                " frame: " + finalImageData.length + " bytes");
+            logger.debug("Received {} frame: {} bytes", (missingChunks ? "incomplete" : "complete"), finalImageData.length);
             
             // Log first few bytes to help debug format issues
 //            debugImageData(finalImageData);
@@ -877,13 +871,13 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             receiveVideoFrame(finalImageData);
             
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Error processing frame chunks", e);
+            logger.warn("Error processing frame chunks", e);
         }
     }
     
     private void debugImageData(byte[] imageData) {
         if (imageData == null || imageData.length == 0) {
-            System.out.println("DEBUG: Image data is null or empty");
+            logger.debug("DEBUG: Image data is null or empty");
             return;
         }
         
@@ -892,49 +886,49 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                                   (imageData[0] & 0xFF) == 0xFF && 
                                   (imageData[1] & 0xFF) == 0xD8);
         
-        System.out.println("DEBUG: Image data length: " + imageData.length + 
-                          ", Valid JPEG header: " + validJpegHeader);
+        logger.debug("DEBUG: Image data length: {}, Valid JPEG header: {}", imageData.length, validJpegHeader);
         
         // Print first 20 bytes for debugging (as hex)
         StringBuilder hexDump = new StringBuilder("First bytes: ");
         for (int i = 0; i < Math.min(20, imageData.length); i++) {
             hexDump.append(String.format("%02X ", imageData[i] & 0xFF));
         }
-        System.out.println(hexDump.toString());
+        logger.debug(hexDump.toString());
     }
 
     // Public method to trigger hangup (e.g., from button)
     public void hangupCall() {
-         System.out.println("DEBUG: hangupCall entered. InCall: " + inCall.get());
+         logger.debug("hangupCall entered. InCall: {}", inCall.get());
          if (inCall.get()) {
             sendHangupMessage();
-            System.out.println("DEBUG: Calling cleanupCall from hangupCall.");
+            logger.debug("Calling cleanupCall from hangupCall.");
             cleanupCall();
         }
     }
 
     private void sendHangupMessage() {
-        System.out.println("DEBUG: sendHangupMessage entered. Partner: " + (currentCallPartner != null ? currentCallPartner.getUsername() : "null"));
+        logger.debug("sendHangupMessage entered. Partner: {}", 
+            (currentCallPartner != null ? currentCallPartner.getUsername() : "null"));
         if (currentCallPartner != null) {
             try {
                 ConnectionManager.getInstance().sendMessage(
                         new VideoCallEnd(userHandler.getUser(), currentCallPartner));
-                System.out.println("Sent hangup message to " + currentCallPartner.getUsername());
+                logger.info("Sent hangup message to {}", currentCallPartner.getUsername());
             } catch (IOException e) {
-                System.err.println("Error sending call end message: " + e.getMessage());
+                logger.error("Error sending call end message: {}", e.getMessage(), e);
             }
         } else {
-            System.out.println("DEBUG: sendHangupMessage skipped - no current partner.");
+            logger.debug("sendHangupMessage skipped - no current partner.");
         }
     }
 
     private void cleanupCall() {
-        System.out.println("DEBUG: cleanupCall entered. Current inCall state: " + inCall.get());
+        logger.debug("cleanupCall entered. Current inCall state: {}", inCall.get());
         if (!inCall.getAndSet(false)) { // Prevent double cleanup
-            System.out.println("Cleanup already in progress or call not active.");
+            logger.debug("Cleanup already in progress or call not active.");
             return;
         }
-        System.out.println("Starting call cleanup...");
+        logger.debug("Starting call cleanup...");
 
         capturing.set(false);
         
@@ -942,29 +936,29 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         if (webcam != null && webcam.isOpen()) {
             try {
                 webcam.close();
-                System.out.println("Webcam closed.");
+                logger.info("Webcam closed.");
             } catch (Exception e) {
-                System.err.println("Error closing webcam: " + e.getMessage());
+                logger.error("Error closing webcam: {}", e.getMessage(), e);
             }
             webcam = null;
         }
         
         if (captureThread != null) {
-            System.out.println("Interrupting capture thread...");
+            logger.debug("Interrupting capture thread...");
             captureThread.interrupt();
             try {
-                System.out.println("DEBUG: Joining capture thread...");
+                logger.debug("DEBUG: Joining capture thread...");
                 captureThread.join(500); // Wait briefly for thread to finish
-                System.out.println("DEBUG: Capture thread join completed. Is alive? " + captureThread.isAlive());
+                logger.debug("DEBUG: Capture thread join completed. Is alive? {}", captureThread.isAlive());
             } catch (InterruptedException e) {
-                System.err.println("DEBUG: Interrupted while joining capture thread.");
+                logger.error("DEBUG: Interrupted while joining capture thread.");
                 Thread.currentThread().interrupt(); // Re-interrupt if needed
             }
             if (captureThread.isAlive()) {
-                System.err.println("Capture thread did not terminate cleanly.");
+                logger.error("Capture thread did not terminate cleanly.");
             }
             captureThread = null;
-            System.out.println("Capture thread stopped.");
+            logger.info("Capture thread stopped.");
         }
 
         // Clean up the UI on the EDT
@@ -972,14 +966,14 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         videoFrame = null; // Clear reference first to prevent race conditions
         
         SwingUtilities.invokeLater(() -> {
-            System.out.println("DEBUG: Executing cleanupCall SwingUtilities.invokeLater.");
+            logger.debug("DEBUG: Executing cleanupCall SwingUtilities.invokeLater.");
             if (frameToDispose != null) {
-                System.out.println("Disposing video frame...");
+                logger.debug("Disposing video frame...");
                 frameToDispose.setVisible(false);
                 frameToDispose.dispose();
-                System.out.println("Video frame disposed.");
+                logger.info("Video frame disposed.");
             } else {
-                System.out.println("DEBUG: Video frame was already null during cleanup.");
+                logger.debug("DEBUG: Video frame was already null during cleanup.");
             }
             
             // Also clear panel references
@@ -987,7 +981,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             remoteVideoPanel = null;
         });
 
-        System.out.println("DEBUG: Resetting partner and images in cleanupCall.");
+        logger.debug("Resetting partner and images in cleanupCall.");
         currentCallPartner = null;
         lastCapturedImage = null;
         lastReceivedImage = null;
@@ -999,7 +993,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
         calleeAddress = null;
         receivingImage = false;
         receivedDataBuffer.reset();
-        System.out.println("DEBUG: cleanupCall finished.");
+        logger.debug("DEBUG: cleanupCall finished.");
     }
 
     @Override
@@ -1010,6 +1004,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     // Add Metered TURN credentials
     private List<TurnServer> fetchTurnServers() {
         List<TurnServer> turnServers = new ArrayList<>();
+        String METERED_API_URL = ApplicationContext.getProperties().getProperty("metered.url");
         if (METERED_API_URL.isBlank())
             return turnServers;
         try {
@@ -1034,7 +1029,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                 
                 // Parse JSON response
                 String jsonResponse = response.toString();
-                System.out.println("Metered API response: " + jsonResponse);
+                logger.info("Metered API response: {}", jsonResponse);
                 
                 // Simple JSON parsing (could use a proper JSON library)
                 // Format is like: [{"urls":"turn:server.com:port","username":"user","credential":"pass"}]
@@ -1049,21 +1044,21 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                         String host = urlPart.substring(5, urlPart.lastIndexOf(":"));
                         int port = Integer.parseInt(urlPart.substring(urlPart.lastIndexOf(":") + 1));
                         
-                        System.out.println("Adding TURN server: " + host + ":" + port + " with username: " + username);
+                        logger.info("Adding TURN server: {} : {}", host, port);
                         turnServers.add(new TurnServer(host, port, username, credential));
                     }
                 }
             } else {
-                System.out.println("Failed to fetch TURN servers: HTTP error code: " + responseCode);
+                logger.info("Failed to fetch TURN servers: HTTP error code: {}", responseCode);
             }
         } catch (Exception e) {
-            System.out.println("Error fetching TURN servers: " + e.getMessage());
+            logger.error("Error fetching TURN servers: {}", e.getMessage());
             e.printStackTrace();
         }
         
         // Add fallback TURN servers if the API fails
         if (turnServers.isEmpty()) {
-            System.out.println("Using fallback TURN servers");
+            logger.info("Using fallback TURN servers");
             turnServers.add(new TurnServer("turn.voipgate.com", 3478, "webrtc", "webrtc"));
         }
         
@@ -1086,7 +1081,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
     }
 
     private void restartIceNegotiation() {
-        System.out.println("DEBUG: Attempting to restart ICE negotiation");
+        logger.debug("Attempting to restart ICE negotiation");
         try {
             // Get a selected pair that's more likely to work (prefer public addresses)
             CandidatePair currentPair = null;
@@ -1101,7 +1096,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                             // Found a public address
                             calleeAddress = ta.getAddress();
                             calleePort = ta.getPort();
-                            System.out.println("DEBUG: Switched to public candidate: " + calleeAddress.getHostAddress() + ":" + calleePort);
+                            logger.debug("DEBUG: Switched to public candidate: {}", calleeAddress.getHostAddress() + ":" + calleePort);
                             return;
                         }
                     }
@@ -1113,22 +1108,22 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
                     if (currentPair != null) {
                         calleeAddress = currentPair.getRemoteCandidate().getTransportAddress().getAddress();
                         calleePort = currentPair.getRemoteCandidate().getTransportAddress().getPort();
-                        System.out.println("DEBUG: Using fallback candidate: " + calleeAddress.getHostAddress() + ":" + calleePort);
+                        logger.debug("DEBUG: Using fallback candidate: {}", calleeAddress.getHostAddress() + ":" + calleePort);
                     }
                 }
             }
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to restart ICE negotiation", e);
+            logger.warn("Failed to restart ICE negotiation", e);
         }
     }
 
     public static void configureStunServers(Agent iceAgent) {
         if (iceAgent == null) {
-            System.err.println("IceAgent is null. Cannot configure STUN servers.");
+            logger.error("IceAgent is null. Cannot configure STUN servers.");
             return;
         }
 
-        System.out.println("Configuring STUN servers for IceAgent...");
+        logger.info("Configuring STUN servers for IceAgent...");
 
         List<Integer> serverIndices = new ArrayList<>(STUN_SERVERS.length);
         for (int i = 0; i < STUN_SERVERS.length; i++) {
@@ -1149,7 +1144,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             try {
                 String[] parts = serverAddress.split(":");
                 if (parts.length != 2) {
-                    System.err.println("Invalid STUN server address format: " + serverAddress);
+                    logger.error("Invalid STUN server address format: {}", serverAddress);
                     continue;
                 }
                 String host = parts[0];
@@ -1161,17 +1156,17 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
 
                 iceAgent.addCandidateHarvester(new StunCandidateHarvester(transportAddress));
 
-                System.out.println("Added STUN server: " + serverAddress);
+                logger.info("Added STUN server: {}", serverAddress);
 
             } catch (UnknownHostException e) {
-                System.err.println("Could not resolve STUN server host: " + serverAddress + " - " + e.getMessage());
+                logger.error("Could not resolve STUN server host: {} - {}", serverAddress, e.getMessage());
             } catch (NumberFormatException e) {
-                System.err.println("Invalid port number for STUN server: " + serverAddress + " - " + e.getMessage());
+                logger.error("Invalid port number for STUN server: {} - {}", serverAddress, e.getMessage());
             } catch (Exception e) {
-                System.err.println("Error adding STUN server " + serverAddress + ": " + e.getMessage());
+                logger.error("Error adding STUN server {}", serverAddress, e);
             }
         }
-        System.out.println("Finished configuring STUN servers.");
+        logger.info("Finished configuring STUN servers.");
     }
     private static final String[] STUN_SERVERS = {
             "23.21.150.121:3478",
@@ -1234,7 +1229,7 @@ public class VideoChatHandler implements ResponseHandler, EventListener {
             "stun.demos.ru:3478",
             "stun.develz.org:3478",
             "stun.dingaling.ca:3478",
-            "stun.doublerobotics.com:34alers that offer UDP on port 3478 (the default STUN port). Some might also offer TCP.78",
+            "stun.doublerobotics.com:3478",
             "stun.drogon.net:3478",
             "stun.duocom.es:3478",
             "stun.dus.net:3478",
