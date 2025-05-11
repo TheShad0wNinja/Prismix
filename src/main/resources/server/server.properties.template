@@ -1,6 +1,14 @@
-server.port=
+# Server configuration
+server.port=8443
 
-ssl.path=
-ssl.password=
+# Database configuration
+db.name=tavern_server.db
 
-db.name=
+# SSL configuration
+ssl.path=server.jks
+ssl.password=changeit
+
+# Logging configuration
+# Valid levels: TRACE, DEBUG, INFO, WARN, ERROR
+logging.level=INFO
+logging.file=logs/server.log

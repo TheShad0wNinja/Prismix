@@ -1,5 +1,8 @@
 package com.tavern.common.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -9,8 +12,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Utility class for loading properties files.
@@ -19,7 +20,7 @@ import java.util.logging.Logger;
  */
 public class PropertyFileLoader {
 
-    private static final Logger LOGGER = Logger.getLogger(PropertyFileLoader.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(PropertyFileLoader.class);
     private static final String DEFAULT_PROPERTIES_FILENAME = "application.properties";
     
     private final String propertiesFilename;
@@ -59,7 +60,7 @@ public class PropertyFileLoader {
         // If external file wasn't loaded and defaults were loaded, copy defaults to main properties
         if (!externalLoaded && defaultsLoaded) {
             properties.putAll(defaultProps);
-            LOGGER.info("Using only default properties from classpath: " + propertiesFilename);
+            logger.info("Using only default properties from classpath: {}", propertiesFilename);
         }
         
         // If external was loaded but some properties might be missing, add defaults as fallback
@@ -69,14 +70,14 @@ public class PropertyFileLoader {
                 // If the key doesn't exist in the main properties, add it
                 if (!properties.containsKey(key)) {
                     properties.setProperty(key, defaultProps.getProperty(key));
-                    LOGGER.fine("Using default value for property: " + key);
+                    logger.info("Using default value for property: {}", key);
                 }
             }
-            LOGGER.info("Merged external properties with defaults from classpath");
+            logger.info("Merged external properties with defaults from classpath");
         }
         
         if (properties.isEmpty()) {
-            LOGGER.warning("Could not load properties from either file system or classpath: " + propertiesFilename);
+            logger.warn("Could not load properties from either file system or classpath: {}", propertiesFilename);
         }
     }
     
@@ -90,11 +91,11 @@ public class PropertyFileLoader {
         try (InputStream input = getClass().getClassLoader().getResourceAsStream(propertiesFilename)) {
             if (input != null) {
                 defaultProps.load(input);
-                LOGGER.fine("Loaded default properties from classpath: " + propertiesFilename);
+                logger.info("Loaded default properties from classpath: {}", propertiesFilename);
                 return true;
             }
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Failed to load default properties from classpath: " + propertiesFilename, e);
+            logger.warn("Failed to load default properties from classpath: {}", propertiesFilename, e);
         }
         return false;
     }
@@ -121,7 +122,7 @@ public class PropertyFileLoader {
                 }
             }
         } catch (URISyntaxException e) {
-            LOGGER.log(Level.WARNING, "Failed to determine application location", e);
+            logger.warn("Failed to determine application location", e);
         }
         
         // If couldn't determine JAR location, try current working directory
@@ -133,11 +134,10 @@ public class PropertyFileLoader {
         if (externalPropertiesFile.exists() && externalPropertiesFile.canRead()) {
             try (FileInputStream fis = new FileInputStream(externalPropertiesFile)) {
                 properties.load(fis);
-                LOGGER.info("Loaded properties from file system: " + externalPropertiesFile.getAbsolutePath());
+                logger.info("Loaded properties from file system: {}", externalPropertiesFile.getAbsolutePath());
                 return true;
             } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to load properties from file system: " 
-                        + externalPropertiesFile.getAbsolutePath(), e);
+                logger.warn("Failed to load properties from file system: {}", externalPropertiesFile.getAbsolutePath(), e);
             }
         }
         

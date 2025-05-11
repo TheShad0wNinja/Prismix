@@ -3,6 +3,7 @@ package com.tavern.client.utils;
 import com.tavern.client.handlers.ApplicationContext;
 import com.tavern.common.model.network.NetworkMessage;
 import com.tavern.common.utils.AppDataManager;
+import com.tavern.common.utils.LogManager;
 import com.tavern.common.utils.PropertyFileLoader;
 
 import javax.net.ssl.SSLContext;
@@ -11,11 +12,11 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.*;
 import java.security.KeyStore;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConnectionManager {
-    private static final Logger logger = Logger.getLogger(ConnectionManager.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(ConnectionManager.class);
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private SSLSocket socket;
@@ -29,6 +30,10 @@ public class ConnectionManager {
 
     private ConnectionManager() {
         PropertyFileLoader props = ApplicationContext.getProperties();
+        
+        // Configure logging from properties
+        LogManager.configureLogging(props);
+        
         serverHost = props.getProperty("server.host", "");
         serverPort = Integer.parseInt(props.getProperty("server.port",  "0"));
         trustStorePath = props.getProperty("ssl.path");
@@ -41,7 +46,7 @@ public class ConnectionManager {
         if (instance == null) {
             instance = new ConnectionManager();
         }
-       return instance;
+        return instance;
     }
 
     public boolean isConnected() {
@@ -50,13 +55,13 @@ public class ConnectionManager {
 
     private void startConnection() {
         try {
-            System.out.println("Starting secure connection...");
+            logger.info("Starting secure connection to {}:{}", serverHost, serverPort);
             
             // Load truststore using AppDataManager
             KeyStore trustStore = KeyStore.getInstance("JKS");
             try (InputStream trustStoreStream = AppDataManager.loadFile(trustStorePath, getClass())) {
                 trustStore.load(trustStoreStream, trustStorePassword.toCharArray());
-                logger.info("Successfully loaded truststore from: " + trustStorePath);
+                logger.info("Successfully loaded truststore from: {}", trustStorePath);
             }
             
             // Create trust manager factory
@@ -76,31 +81,32 @@ public class ConnectionManager {
             
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
-            System.out.println("Secure connection established");
+            logger.info("Secure connection established");
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Unable to connect to server", e);
-            System.out.println("Unable to connect to server: " + e.getMessage());
+            logger.error("Unable to connect to server: {}", e.getMessage(), e);
         }
     }
 
     public void sendMessage(NetworkMessage message) throws IOException {
-        System.out.println("Sending message: " + message);
+        logger.debug("Sending message: {}", message);
         out.writeObject(message);
         out.flush();
     }
 
     public NetworkMessage receiveMessage() throws IOException, ClassNotFoundException {
-        return (NetworkMessage) in.readObject();
+        NetworkMessage message = (NetworkMessage) in.readObject();
+        logger.debug("Received message: {}", message);
+        return message;
     }
 
     public void close() {
-        System.out.println("Closing connection...");
+        logger.info("Closing connection...");
         try {
             if (out != null) out.close();
             if (in != null) in.close();
             if (socket != null) socket.close();
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Error closing connection", e);
+            logger.warn("Error closing connection", e);
         }
     }
 }

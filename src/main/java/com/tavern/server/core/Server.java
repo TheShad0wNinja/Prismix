@@ -2,6 +2,7 @@ package com.tavern.server.core;
 
 import com.tavern.common.model.network.NetworkMessage;
 import com.tavern.common.utils.AppDataManager;
+import com.tavern.common.utils.LogManager;
 import com.tavern.common.utils.PropertyFileLoader;
 import com.tavern.server.handlers.UserHandler;
 import com.tavern.server.handlers.MessageHandler;
@@ -21,11 +22,11 @@ import java.security.KeyStore;
 import java.sql.Connection;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Server {
-    private static final Logger logger = Logger.getLogger(Server.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(Server.class);
     private final int port;
     private final UserHandler userHandler;
     private final HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers;
@@ -38,6 +39,8 @@ public class Server {
     private final String keystorePassword;
 
     public Server() throws IOException {
+        LogManager.configureLogging(properties);
+        
         keystorePath = properties.getProperty("ssl.path");
         keystorePassword = properties.getProperty("ssl.password");
         port = Integer.parseInt(properties.getProperty("server.port", "0"));
@@ -61,7 +64,7 @@ public class Server {
             KeyStore keyStore = KeyStore.getInstance("JKS");
             try (InputStream keystoreStream = AppDataManager.loadFile(keystorePath, getClass())) {
                 keyStore.load(keystoreStream, keystorePassword.toCharArray());
-                logger.info("Successfully loaded keystore from: " + keystorePath);
+                logger.info("Successfully loaded keystore from: {}", keystorePath);
             }
 
             // Create key manager factory
@@ -79,21 +82,21 @@ public class Server {
             // Require client authentication (optional, set to false if not required)
             serverSocket.setNeedClientAuth(false);
 
-            logger.info("Secure server started on port " + port);
+            logger.info("Secure server started on port {}", port);
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error initializing SSL", e);
+            logger.error("Error initializing SSL", e);
             throw new IOException("Error initializing SSL", e);
         }
 
         try {
             while (isRunning.get() && !serverSocket.isClosed()) {
                 Socket socket = serverSocket.accept();
-                logger.info("Accepted secure connection from " + socket.getRemoteSocketAddress());
+                logger.info("Accepted secure connection from {}", socket.getRemoteSocketAddress());
                 new Thread(new ClientHandler(socket, this)).start();
             }
         } catch (IOException e) {
             if (isRunning.get()) { // Only log if not shutting down
-                logger.log(Level.SEVERE, "Error accepting connections", e);
+                logger.error("Error accepting connections", e);
             }
         } finally {
             shutdown();
@@ -112,7 +115,7 @@ public class Server {
             try {
                 handler.close();
             } catch (Exception e) {
-                logger.log(Level.WARNING, "Error closing client handler", e);
+                logger.warn("Error closing client handler", e);
             }
         }
 
@@ -121,7 +124,7 @@ public class Server {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                logger.log(Level.WARNING, "Error closing server socket", e);
+                logger.warn("Error closing server socket", e);
             }
         }
 
@@ -132,7 +135,7 @@ public class Server {
                 conn.close();
             }
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Error closing database connection", e);
+            logger.warn("Error closing database connection", e);
         }
 
         logger.info("Server shutdown complete");
@@ -145,12 +148,4 @@ public class Server {
         handler.handleRequest(msg, clientHandler);
     }
 
-    public static void main(String[] args) {
-        try {
-            new Server();
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Failed to start server", e);
-            System.exit(1);
-        }
-    }
 }
