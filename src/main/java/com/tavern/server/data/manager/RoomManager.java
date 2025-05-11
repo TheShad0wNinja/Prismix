@@ -4,10 +4,14 @@ import com.tavern.common.model.Room;
 import com.tavern.common.model.User;
 import com.tavern.server.data.repository.RoomMemberRepository;
 import com.tavern.server.data.repository.RoomRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.*;
 import java.util.List;
 
 public class RoomManager {
+    private static final Logger logger = LoggerFactory.getLogger(RoomManager.class);
 
     private RoomManager() {}
 
@@ -15,7 +19,7 @@ public class RoomManager {
         try {
             // Check if room name already exists
             if (RoomRepository.getRoomByName(roomName) != null) {
-                System.out.println("Room creation failed: Room name already exists.");
+                logger.info("Room creation failed: Room name '{}' already exists", roomName);
                 return null;
             }
 
@@ -23,7 +27,7 @@ public class RoomManager {
             return RoomRepository.createRoom(newRoom);
 
         } catch (SQLException e) {
-            System.err.println("Error creating room: " + e.getMessage());
+            logger.error("Error creating room '{}': {}", roomName, e.getMessage(), e);
             return null;
         }
     }
@@ -31,14 +35,14 @@ public class RoomManager {
     public static boolean joinRoom(int userId, int roomId) {
         try {
             if (RoomRepository.getRoomById(roomId) == null) {
-                System.out.println("Joining room failed: Room with ID " + roomId + " does not exist.");
+                logger.info("Joining room failed: Room with ID {} does not exist", roomId);
                 return false;
             }
 
             RoomMemberRepository.addRoomMember(roomId, userId);
             return true;
         } catch (SQLException e) {
-            System.err.println("Error joining room: " + e.getMessage());
+            logger.error("Error joining room {}: {}", roomId, e.getMessage(), e);
             return false;
         }
     }
@@ -48,7 +52,7 @@ public class RoomManager {
             RoomMemberRepository.removeRoomMember(roomId, userId);
             return true;
         } catch (SQLException e) {
-            System.err.println("Error leaving room: " + e.getMessage());
+            logger.error("Error leaving room {}: {}", roomId, e.getMessage(), e);
             return false;
         }
     }
@@ -57,7 +61,7 @@ public class RoomManager {
         try {
             return RoomMemberRepository.getRoomMembers(roomId);
         } catch (SQLException e) {
-            System.err.println("Error getting room members: " + e.getMessage());
+            logger.error("Error getting members of room {}: {}", roomId, e.getMessage(), e);
             return null;
         }
     }
@@ -66,7 +70,7 @@ public class RoomManager {
         try {
             return RoomMemberRepository.getUserRooms(userId);
         } catch (SQLException e) {
-            System.err.println("Error getting users's rooms: " + e.getMessage());
+            logger.error("Error getting rooms for user {}: {}", userId, e.getMessage(), e);
             return null;
         }
     }

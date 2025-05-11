@@ -7,6 +7,8 @@ import com.tavern.client.gui.components.themed.ThemedPanel;
 import com.tavern.client.gui.components.themed.ThemedTextArea;
 import com.tavern.client.handlers.ApplicationContext;
 import com.tavern.common.model.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class InputBar extends ThemedPanel implements EventListener {
+    private static final Logger logger = LoggerFactory.getLogger(InputBar.class);
     private final ThemedTextArea messageInput;
     private final boolean isDirect;
     private static final AtomicLong messageSerial = new AtomicLong(0);
@@ -95,7 +98,7 @@ public class InputBar extends ThemedPanel implements EventListener {
             // Clear input
             messageInput.setText("");
         } catch (Exception e) {
-            System.err.println("Error sending message: " + e.getMessage());
+            logger.error("Error sending message: {}", e.getMessage(), e);
         }
     }
 

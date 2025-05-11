@@ -7,11 +7,14 @@ import com.tavern.server.core.ClientHandler;
 import com.tavern.server.core.RequestHandler;
 import com.tavern.server.data.manager.MessageManager;
 import com.tavern.server.data.manager.RoomManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
 
 public class MessageHandler implements RequestHandler {
+    private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     private final UserHandler userHandler;
 
     public MessageHandler(UserHandler userHandler, HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
@@ -50,12 +53,12 @@ public class MessageHandler implements RequestHandler {
                         // If delivery failed or user not connected, mark as unread
                         if (!delivered) {
                             activeUsers.remove(receiver);
-                            System.out.println("Marking message as unread for receiver: " + msg.getReceiverId());
+                            logger.debug("Marking message as unread for receiver: {}", msg.getReceiverId());
                             MessageManager.markMessageAsUnread(msg.getReceiverId(), createdMsg);
                         }
                     } else {
                         // Receiver is not active, mark message as unread
-                        System.out.println("Receiver not active, marking message as unread: " + msg.getReceiverId());
+                        logger.debug("Receiver not active, marking message as unread: {}", msg.getReceiverId());
                         MessageManager.markMessageAsUnread(msg.getReceiverId(), createdMsg);
                     }
                 } else {
@@ -70,7 +73,7 @@ public class MessageHandler implements RequestHandler {
                         return;
                     }
 
-                    System.out.println("ROOM USERS: " + roomUsers);
+                    logger.debug("Room users: {}", roomUsers);
                     for (User user : roomUsers) {
                         if (user.getId() == (msg.getSenderId())) {
                             client.sendMessage(new SendTextMessageResponse(msg, true));
@@ -78,14 +81,15 @@ public class MessageHandler implements RequestHandler {
                         }
 
                         if (activeUsers.containsKey(user)) {
-                            System.out.println("ACTIVE USER: " + user.getUsername() + " : " + activeUsers.get(user).isConnected());
+                            logger.debug("Active user: {}, connected: {}", 
+                                    user.getUsername(), activeUsers.get(user).isConnected());
                             if (activeUsers.get(user).isConnected()) {
                                 activeUsers.get(user).sendMessage(new ReceiveTextMessageRequest(msg));
                                 continue;
                             }
                             activeUsers.remove(user);
                         }
-                        System.out.println("Marking user " + user.getUsername() + " as unread");
+                        logger.debug("Marking user {} as unread", user.getUsername());
                         MessageManager.markMessageAsUnread(user, createdMsg);
                     }
                 }
@@ -93,13 +97,15 @@ public class MessageHandler implements RequestHandler {
             case GET_UNREAD_MESSAGE_REQUEST -> {
                 GetUnreadMessagesRequest request = (GetUnreadMessagesRequest) message;
                 List<Message> messages = MessageManager.getUnreadMessages(request.user().getId());
-                System.out.println("THE MESSAGES: " + messages);
+                logger.debug("Retrieved unread messages for user {}: count={}", 
+                        request.user().getUsername(), messages != null ? messages.size() : 0);
                 if (messages == null) {
                     return;
                 }
 
                 if (userHandler.getActiveUsers().containsKey(request.user())) {
-                    System.out.println(messages);
+                    logger.debug("Sending {} unread messages to user {}", 
+                            messages.size(), request.user().getUsername());
                     userHandler.getActiveUsers().get(request.user()).sendMessage(new GetUnreadMessagesResponse(messages));
                     for (Message m : messages) {
                         MessageManager.markMessageAsRead(request.user().getId(), m.getId());

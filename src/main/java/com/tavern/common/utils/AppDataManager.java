@@ -1,5 +1,8 @@
 package com.tavern.common.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -8,8 +11,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Utility class for managing application data files.
@@ -19,7 +20,7 @@ import java.util.logging.Logger;
  * 3. From classpath resources
  */
 public class AppDataManager {
-    private static final Logger LOGGER = Logger.getLogger(AppDataManager.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(AppDataManager.class.getName());
     private static final String APP_NAME = "Tavern";
 
     private AppDataManager() { }
@@ -51,7 +52,7 @@ public class AppDataManager {
         // First try to load as an absolute path
         File file = new File(filePath);
         if (file.exists() && file.isFile()) {
-            LOGGER.info("Loading file from absolute path: " + file.getAbsolutePath());
+            logger.info("Loading file from absolute path: {}", file.getAbsolutePath());
             return new FileInputStream(file);
         }
         
@@ -67,19 +68,19 @@ public class AppDataManager {
                 if (parentDir != null) {
                     File externalFile = parentDir.resolve(filePath).toFile();
                     if (externalFile.exists() && externalFile.isFile()) {
-                        LOGGER.info("Loading file from JAR directory: " + externalFile.getAbsolutePath());
+                        logger.info("Loading file from JAR directory: {}", externalFile.getAbsolutePath());
                         return new FileInputStream(externalFile);
                     }
                 }
             }
         } catch (URISyntaxException e) {
-            LOGGER.log(Level.WARNING, "Failed to determine application location", e);
+            logger.warn("Failed to determine application location", e);
         }
         
         // Finally, try to load from classpath
         InputStream classpathStream = contextClass.getClassLoader().getResourceAsStream(filePath);
         if (classpathStream != null) {
-            LOGGER.info("Loading file from classpath: " + filePath);
+            logger.info("Loading file from classpath: {}", filePath);
             return classpathStream;
         }
         

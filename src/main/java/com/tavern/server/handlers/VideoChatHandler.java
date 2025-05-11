@@ -4,10 +4,13 @@ import com.tavern.common.model.User;
 import com.tavern.common.model.network.*;
 import com.tavern.server.core.ClientHandler;
 import com.tavern.server.core.RequestHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 
 public class VideoChatHandler implements RequestHandler {
+    private static final Logger logger = LoggerFactory.getLogger(VideoChatHandler.class);
     private final UserHandler userHandler;
 
     public VideoChatHandler(UserHandler userHandler, HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
@@ -53,8 +56,8 @@ public class VideoChatHandler implements RequestHandler {
     }
 
     private void handleCallRequest(VideoCallRequest request, ClientHandler client) {
-        System.out.println("Video call request from " + request.caller().getUsername() + 
-                " to " + request.callee().getUsername());
+        logger.info("Video call request from {} to {}", 
+                request.caller().getUsername(), request.callee().getUsername());
         
         // Get the client handler for the callee
         HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
@@ -65,6 +68,7 @@ public class VideoChatHandler implements RequestHandler {
             calleeClient.sendMessage(request);
         } else {
             // Callee is not online, send a rejection response
+            logger.info("Callee {} is not online, automatically rejecting call", request.callee().getUsername());
             client.sendMessage(new VideoCallResponse(
                     request.callee(), 
                     request.caller(), 
@@ -73,8 +77,9 @@ public class VideoChatHandler implements RequestHandler {
     }
 
     private void handleCallResponse(VideoCallResponse response, ClientHandler client) {
-        System.out.println("Video call response from " + response.callee().getUsername() + 
-                " to " + response.caller().getUsername() + ": " + 
+        logger.info("Video call response from {} to {}: {}", 
+                response.callee().getUsername(), 
+                response.caller().getUsername(), 
                 (response.accepted() ? "Accepted" : "Rejected"));
         
         // Forward the response to the caller
@@ -83,12 +88,14 @@ public class VideoChatHandler implements RequestHandler {
         
         if (callerClient != null && callerClient.isConnected()) {
             callerClient.sendMessage(response);
+        } else {
+            logger.warn("Caller {} is no longer online", response.caller().getUsername());
         }
     }
 
     private void handleCallOffer(VideoCallOffer offer, ClientHandler client) {
-        System.out.println("Video call offer from " + offer.caller().getUsername() + 
-                " to " + offer.callee().getUsername());
+        logger.info("Video call offer from {} to {}", 
+                offer.caller().getUsername(), offer.callee().getUsername());
         
         // Forward the offer to the callee
         HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
@@ -96,12 +103,14 @@ public class VideoChatHandler implements RequestHandler {
         
         if (calleeClient != null && calleeClient.isConnected()) {
             calleeClient.sendMessage(offer);
+        } else {
+            logger.warn("Callee {} is no longer online", offer.callee().getUsername());
         }
     }
 
     private void handleCallAnswer(VideoCallAnswer answer, ClientHandler client) {
-        System.out.println("Video call answer from " + answer.callee().getUsername() + 
-                " to " + answer.caller().getUsername());
+        logger.info("Video call answer from {} to {}", 
+                answer.callee().getUsername(), answer.caller().getUsername());
         
         // Forward the answer to the caller
         HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
@@ -109,25 +118,14 @@ public class VideoChatHandler implements RequestHandler {
         
         if (callerClient != null && callerClient.isConnected()) {
             callerClient.sendMessage(answer);
+        } else {
+            logger.warn("Caller {} is no longer online", answer.caller().getUsername());
         }
     }
 
-//    private void handleIceCandidate(VideoIceCandidate candidate, ClientHandler client) {
-//        System.out.println("ICE candidate from " + candidate.sender().getUsername() +
-//                " to " + candidate.receiver().getUsername());
-//
-//        // Forward the ICE candidate to the receiver
-//        HashMap<User, ClientHandler> activeUsers = authHandler.getActiveUsers();
-//        ClientHandler receiverClient = activeUsers.get(candidate.receiver());
-//
-//        if (receiverClient != null && receiverClient.isConnected()) {
-//            receiverClient.sendMessage(candidate);
-//        }
-//    }
-
     private void handleCallEnd(VideoCallEnd end, ClientHandler client) {
-        System.out.println("Call end from " + end.sender().getUsername() + 
-                " to " + end.receiver().getUsername());
+        logger.info("Call end from {} to {}", 
+                end.sender().getUsername(), end.receiver().getUsername());
         
         // Forward the call end message to the receiver
         HashMap<User, ClientHandler> activeUsers = userHandler.getActiveUsers();
@@ -135,6 +133,9 @@ public class VideoChatHandler implements RequestHandler {
         
         if (receiverClient != null && receiverClient.isConnected()) {
             receiverClient.sendMessage(end);
+        } else {
+            logger.debug("Receiver {} is not online to receive call end notification", 
+                    end.receiver().getUsername());
         }
     }
 }

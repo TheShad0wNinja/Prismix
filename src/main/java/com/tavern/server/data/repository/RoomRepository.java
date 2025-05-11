@@ -2,12 +2,15 @@ package com.tavern.server.data.repository;
 
 import com.tavern.common.model.Room;
 import com.tavern.server.utils.ServerDatabaseManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RoomRepository {
+    private static final Logger logger = LoggerFactory.getLogger(RoomRepository.class);
 
     public static Room createRoom(Room room) throws SQLException {
         String sql = "INSERT INTO room (name, avatar) VALUES (?, ?)";
@@ -27,11 +30,11 @@ public class RoomRepository {
             if (rs.next()) {
                 int id = rs.getInt(1);
                 room.setId(id);
-                System.out.println("Room created successfully with ID: " + room.getId());
+                logger.info("Room created successfully with ID: {}", room.getId());
                 return room;
             }
         } catch (SQLException e) {
-            System.err.println("Error creating room: " + e.getMessage());
+            logger.error("Error creating room", e);
             throw e;
         }
 
@@ -39,7 +42,7 @@ public class RoomRepository {
     }
 
     public static Room getRoomById(int roomId) throws SQLException {
-        System.out.println("Room Id: " + roomId);
+        logger.debug("Fetching room with ID: {}", roomId);
         String sql = "SELECT * FROM room WHERE id = ?";
         try (Connection conn = ServerDatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -54,7 +57,7 @@ public class RoomRepository {
                 return new Room(id, name, avatar);
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching room by ID: " + e.getMessage());
+            logger.error("Error fetching room by ID: {}", roomId, e);
         }
         return null;
     }
@@ -74,7 +77,7 @@ public class RoomRepository {
                 return new Room(id, name, avatar);
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching room by name: " + e.getMessage());
+            logger.error("Error fetching room by name: {}", roomName, e);
             throw e;
         }
         return null;
@@ -96,7 +99,7 @@ public class RoomRepository {
                 rooms.add(new Room(id, name, avatar));
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching all rooms: " + e.getMessage());
+            logger.error("Error fetching all rooms", e);
             throw e;
         }
         return rooms;
@@ -111,9 +114,10 @@ public class RoomRepository {
             pstmt.setInt(2, roomId);
 
             pstmt.executeUpdate();
+            logger.info("Updated room name to '{}' for room ID: {}", newName, roomId);
 
         } catch (SQLException e) {
-            System.err.println("Error updating room name: " + e.getMessage());
+            logger.error("Error updating room name for room ID: {}", roomId, e);
             throw e;
         }
     }
@@ -127,9 +131,10 @@ public class RoomRepository {
             pstmt.setInt(2, roomId);
 
             pstmt.executeUpdate();
+            logger.info("Updated avatar for room ID: {}", roomId);
 
         } catch (SQLException e) {
-            System.err.println("Error updating room avatar: " + e.getMessage());
+            logger.error("Error updating room avatar for room ID: {}", roomId, e);
             throw e;
         }
     }
@@ -141,9 +146,10 @@ public class RoomRepository {
 
             pstmt.setInt(1, roomId);
             pstmt.executeUpdate();
+            logger.info("Deleted room with ID: {}", roomId);
 
         } catch (SQLException e) {
-            System.err.println("Error deleting room: " + e.getMessage());
+            logger.error("Error deleting room with ID: {}", roomId, e);
             throw e;
         }
     }

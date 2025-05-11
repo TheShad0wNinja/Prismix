@@ -6,12 +6,15 @@ import com.tavern.server.core.ClientHandler;
 import com.tavern.server.core.RequestHandler;
 import com.tavern.server.data.manager.UserManager;
 import com.tavern.server.data.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class UserHandler implements RequestHandler {
+    private static final Logger logger = LoggerFactory.getLogger(UserHandler.class);
     private final HashMap<User, ClientHandler> activeUsers;
 
     public UserHandler(HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
@@ -66,7 +69,7 @@ public class UserHandler implements RequestHandler {
                     List<User> allUsers = UserRepository.getAllUsers();
                     clientHandler.sendMessage(new GetAllUsersResponse(allUsers));
                 } catch (Exception e) {
-                    System.err.println("Error getting all users: " + e.getMessage());
+                    logger.error("Error getting all users", e);
                     clientHandler.sendMessage(new GetAllUsersResponse(new ArrayList<>()));
                 }
             }

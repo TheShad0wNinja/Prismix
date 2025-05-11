@@ -6,11 +6,14 @@ import com.tavern.server.data.repository.MessageRepository;
 import com.tavern.server.data.repository.RoomMemberRepository;
 import com.tavern.server.data.repository.UserRepository;
 import com.tavern.server.data.repository.UserUnreadMessageRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.List;
 
 public class MessageManager {
+    private static final Logger logger = LoggerFactory.getLogger(MessageManager.class);
 
     private MessageManager() {}
 
@@ -18,20 +21,21 @@ public class MessageManager {
         try {
             // Validate sender exists
             if (UserRepository.getUserById(message.getSenderId()) == null) {
-                System.out.println("Error sending message: Sender does not exist");
+                logger.warn("Error sending message: Sender ID {} does not exist", message.getSenderId());
                 return null;
             }
 
             if (message.isDirect()) {
                 // Validate receiver exists for direct messages
                 if (UserRepository.getUserById(message.getReceiverId()) == null) {
-                    System.out.println("Error sending message: Direct message receiver does not exist");
+                    logger.warn("Error sending message: Direct message receiver ID {} does not exist", message.getReceiverId());
                     return null;
                 }
             } else {
                 // Validate room exists and user is a member for room messages
                 if (!RoomMemberRepository.isUserInRoom(message.getSenderId(), message.getRoomId())) {
-                    System.out.println("Error sending message: Sender is not a member of the room");
+                    logger.warn("Error sending message: Sender ID {} is not a member of room ID {}", 
+                            message.getSenderId(), message.getRoomId());
                     return null;
                 }
             }
@@ -53,14 +57,14 @@ public class MessageManager {
                             }
                         }
                     } catch (SQLException e) {
-                        System.err.println("Error marking message as unread for room members: " + e.getMessage());
+                        logger.error("Error marking message as unread for room members: {}", e.getMessage(), e);
                     }
                 }
             }
             
             return createdMessage;
         } catch (SQLException e) {
-            System.err.println("Error sending message: " + e.getMessage());
+            logger.error("Error sending message: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -69,7 +73,7 @@ public class MessageManager {
         try {
             return MessageRepository.createMessage(message);
         } catch (SQLException e) {
-            System.err.println("Error creating messages: " + e.getMessage());
+            logger.error("Error creating message: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -78,7 +82,7 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.markMessageAsUnread(userId, message.getId());
         } catch (SQLException e) {
-            System.out.println("Error marking message as unread for user: " + e.getMessage());
+            logger.error("Error marking message as unread for user {}: {}", userId, e.getMessage(), e);
             return false;
         }
     }
@@ -87,7 +91,7 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.markMessageAsUnread(user.getId(), message.getId());
         } catch (SQLException e) {
-            System.out.println("Error marking message as unread for user: " + e.getMessage());
+            logger.error("Error marking message as unread for user {}: {}", user.getUsername(), e.getMessage(), e);
             return false;
         }
     }
@@ -96,7 +100,7 @@ public class MessageManager {
         try {
             return MessageRepository.getMessagesForRoom(roomId, limit, offset);
         } catch (SQLException e) {
-            System.err.println("Error getting messages for room: " + e.getMessage());
+            logger.error("Error getting messages for room {}: {}", roomId, e.getMessage(), e);
             return null;
         }
     }
@@ -105,7 +109,8 @@ public class MessageManager {
         try {
             return MessageRepository.getDirectMessages(user1Id, user2Id, limit, offset);
         } catch (SQLException e) {
-            System.err.println("Error getting direct messages: " + e.getMessage());
+            logger.error("Error getting direct messages between users {} and {}: {}", 
+                    user1Id, user2Id, e.getMessage(), e);
             return null;
         }
     }
@@ -123,7 +128,7 @@ public class MessageManager {
             // Then delete the message itself
             return MessageRepository.deleteMessage(messageId);
         } catch (SQLException e) {
-            System.err.println("Error deleting message: " + e.getMessage());
+            logger.error("Error deleting message {}: {}", messageId, e.getMessage(), e);
             return false;
         }
     }
@@ -132,7 +137,7 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.getUnreadMessages(userId);
         } catch (SQLException e) {
-            System.err.println("Error getting unread messages: " + e.getMessage());
+            logger.error("Error getting unread messages for user {}: {}", userId, e.getMessage(), e);
             return null;
         }
     }
@@ -141,7 +146,8 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.markMessageAsRead(userId, messageId);
         } catch (SQLException e) {
-            System.err.println("Error marking message as read: " + e.getMessage());
+            logger.error("Error marking message {} as read for user {}: {}", 
+                    messageId, userId, e.getMessage(), e);
             return false;
         }
     }
@@ -150,7 +156,8 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.markAllMessagesAsRead(userId, roomId);
         } catch (SQLException e) {
-            System.err.println("Error marking all room messages as read: " + e.getMessage());
+            logger.error("Error marking all messages as read for user {} in room {}: {}", 
+                    userId, roomId, e.getMessage(), e);
             return false;
         }
     }
@@ -159,7 +166,8 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.markAllDirectMessagesAsRead(userId, otherUserId);
         } catch (SQLException e) {
-            System.err.println("Error marking all direct messages as read: " + e.getMessage());
+            logger.error("Error marking all direct messages as read between users {} and {}: {}", 
+                    userId, otherUserId, e.getMessage(), e);
             return false;
         }
     }
@@ -168,7 +176,7 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.getUnreadMessageCount(userId);
         } catch (SQLException e) {
-            System.err.println("Error getting unread message count: " + e.getMessage());
+            logger.error("Error getting unread message count for user {}: {}", userId, e.getMessage(), e);
             return 0;
         }
     }
@@ -177,7 +185,8 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.getUnreadMessageCountForRoom(userId, roomId);
         } catch (SQLException e) {
-            System.err.println("Error getting unread message count for room: " + e.getMessage());
+            logger.error("Error getting unread message count for user {} in room {}: {}", 
+                    userId, roomId, e.getMessage(), e);
             return 0;
         }
     }
@@ -186,7 +195,8 @@ public class MessageManager {
         try {
             return UserUnreadMessageRepository.getUnreadDirectMessageCount(userId, otherUserId);
         } catch (SQLException e) {
-            System.err.println("Error getting unread direct message count: " + e.getMessage());
+            logger.error("Error getting unread direct message count between users {} and {}: {}", 
+                    userId, otherUserId, e.getMessage(), e);
             return 0;
         }
     }

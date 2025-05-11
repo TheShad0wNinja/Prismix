@@ -2,6 +2,8 @@ package com.tavern.server.data.repository;
 
 import com.tavern.common.model.User;
 import com.tavern.server.utils.ServerDatabaseManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -9,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class UserRepository {
+    private static final Logger logger = LoggerFactory.getLogger(UserRepository.class);
 
     public static User createUser(User user) throws SQLException {
         String sql = "INSERT INTO user (username, display_name, avatar) VALUES (?, ?, ?)";
@@ -31,40 +34,14 @@ public class UserRepository {
                 }
             }
 
-            System.out.println("User inserted");
+            logger.info("User inserted: {}", user.getUsername());
             return user;
         } catch (SQLException e) {
-            System.err.println("Error creating users: " + e.getMessage());
+            logger.error("Error creating user: {}", e.getMessage(), e);
             throw e;
         }
     }
 
-    public static User createUserWithAvatar(User user) throws SQLException {
-        String sql = "INSERT INTO user (username, display_name, avatar) VALUES (?, ?, ?)";
-        try (Connection conn = ServerDatabaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
-            stmt.setString(1, user.getUsername());
-            stmt.setString(2, user.getDisplayName());
-            stmt.setBytes(2, user.getAvatar());
-
-            int affectedRows = stmt.executeUpdate();
-
-            if (affectedRows == 0) {
-                throw new SQLException("Failed to insert users");
-            }
-
-            try (ResultSet rs = stmt.getGeneratedKeys()) {
-                if (rs.next()) {
-                    user.setId(rs.getInt(1));
-                }
-            }
-            return user;
-        } catch (SQLException e) {
-            System.err.println("Error creating users: " + e.getMessage());
-            throw e;
-        }
-    }
 
     public static User getUserByUsername(String username) throws SQLException {
         String sql = "SELECT * FROM user WHERE username = ?";
@@ -80,17 +57,16 @@ public class UserRepository {
                     String displayName = rs.getString("display_name");
                     byte[] avatar = rs.getBytes("avatar");
 
-                    System.out.println("User: " + username + ", id: " + id + ", displayName: " + displayName);
+                    logger.debug("User found: {}, id: {}, displayName: {}", username, id, displayName);
                     return new User(id, username, displayName, avatar);
                 }
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+                logger.error("Error retrieving user result: {}", e.getMessage(), e);
             }
         } catch (SQLException ex) {
-            System.out.println("Unable to get users: " + ex.getMessage());
+            logger.error("Unable to get user by username: {}", ex.getMessage(), ex);
             throw ex;
         }
-        ;
 
         return null;
     }
@@ -112,7 +88,7 @@ public class UserRepository {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching users by ID: " + e.getMessage());
+            logger.error("Error fetching user by ID: {}", e.getMessage(), e);
             throw e;
         }
         return null;
@@ -128,7 +104,7 @@ public class UserRepository {
 
             stmt.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("Error updating users avatar: " + e.getMessage());
+            logger.error("Error updating user avatar: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -148,7 +124,7 @@ public class UserRepository {
                 users.add(new User(id, username, displayName, avatar));
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching all users: " + e.getMessage());
+            logger.error("Error fetching all users: {}", e.getMessage(), e);
             throw e;
         }
         return users;
@@ -174,7 +150,7 @@ public class UserRepository {
                 users.add(createUser(rs));
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching all users: " + e.getMessage());
+            logger.error("Error fetching users by IDs: {}", e.getMessage(), e);
         }
         return users;
     }

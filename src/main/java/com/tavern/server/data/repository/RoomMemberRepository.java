@@ -3,6 +3,8 @@ package com.tavern.server.data.repository;
 import com.tavern.common.model.Room;
 import com.tavern.common.model.User;
 import com.tavern.server.utils.ServerDatabaseManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RoomMemberRepository {
+    private static final Logger logger = LoggerFactory.getLogger(RoomMemberRepository.class);
 
     private RoomMemberRepository() {}
 
@@ -24,14 +27,14 @@ public class RoomMemberRepository {
             pstmt.setInt(2, userId);
 
             pstmt.executeUpdate();
-            System.out.println("User " + userId + " added to room " + roomId);
+            logger.info("User {} added to room {}", userId, roomId);
 
         } catch (SQLException e) {
             // Handle the case where the users is already a member (Integrity constraint violation)
             if (e.getSQLState() != null && e.getSQLState().startsWith("23")) {
-                System.out.println("User " + userId + " is already a member of room " + roomId);
+                logger.info("User {} is already a member of room {}", userId, roomId);
             } else {
-                System.err.println("Error adding room member: " + e.getMessage());
+                logger.error("Error adding room member: {}", e.getMessage(), e);
                 throw e;
             }
         }
@@ -46,10 +49,10 @@ public class RoomMemberRepository {
             pstmt.setInt(2, userId);
 
             pstmt.executeUpdate();
-            System.out.println("User " + userId + " removed from room " + roomId);
+            logger.info("User {} removed from room {}", userId, roomId);
 
         } catch (SQLException e) {
-            System.err.println("Error removing room member: " + e.getMessage());
+            logger.error("Error removing room member: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -63,17 +66,18 @@ public class RoomMemberRepository {
             pstmt.setInt(1, roomId);
             ResultSet rs = pstmt.executeQuery();
 
-            System.out.println("Room " + roomId + " members found");
+            logger.debug("Retrieving members for room {}", roomId);
             while (rs.next()) {
                 int userId = rs.getInt("id");
                 String username = rs.getString("username");
                 String displayName = rs.getString("display_name");
                 byte[] avatar = rs.getBytes("avatar");
-                System.out.println("User " + userId + " member: " + username + " displayName: " + displayName + " avatar: " + avatar);
+                logger.debug("Found member: userId={}, username={}, displayName={}", 
+                        userId, username, displayName);
                 members.add(new User(userId, username, displayName, avatar));
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching room members: " + e.getMessage());
+            logger.error("Error fetching room members: {}", e.getMessage(), e);
         }
         return members;
     }
@@ -97,7 +101,7 @@ public class RoomMemberRepository {
                 rooms.add(room);
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching users's rooms: " + e.getMessage());
+            logger.error("Error fetching user's rooms: {}", e.getMessage(), e);
         }
         return rooms;
     }
@@ -115,7 +119,7 @@ public class RoomMemberRepository {
                 return rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
-            System.err.println("Error checking if users is in room: " + e.getMessage());
+            logger.error("Error checking if user is in room: {}", e.getMessage(), e);
             throw e;
         }
         return false;

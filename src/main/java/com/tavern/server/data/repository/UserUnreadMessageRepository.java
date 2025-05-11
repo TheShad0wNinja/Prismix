@@ -2,12 +2,15 @@ package com.tavern.server.data.repository;
 
 import com.tavern.common.model.Message;
 import com.tavern.server.utils.ServerDatabaseManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserUnreadMessageRepository {
+    private static final Logger logger = LoggerFactory.getLogger(UserUnreadMessageRepository.class);
 
     private UserUnreadMessageRepository() {}
     
@@ -24,10 +27,10 @@ public class UserUnreadMessageRepository {
         } catch (SQLException e) {
             // Handle the case where this combination already exists
             if (e.getSQLState() != null && e.getSQLState().startsWith("23")) {
-                System.out.println("Message " + messageId + " is already marked as unread for user " + userId);
+                logger.debug("Message {} is already marked as unread for user {}", messageId, userId);
                 return false;
             } else {
-                System.err.println("Error marking message as unread: " + e.getMessage());
+                logger.error("Error marking message as unread", e);
                 throw e;
             }
         }
@@ -44,7 +47,7 @@ public class UserUnreadMessageRepository {
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
-            System.err.println("Error marking message as read: " + e.getMessage());
+            logger.error("Error marking message as read", e);
             throw e;
         }
     }
@@ -61,7 +64,7 @@ public class UserUnreadMessageRepository {
             pstmt.executeUpdate();
             return true;
         } catch (SQLException e) {
-            System.err.println("Error marking all messages as read: " + e.getMessage());
+            logger.error("Error marking all messages as read for user {} in room {}", userId, roomId, e);
             throw e;
         }
     }
@@ -82,7 +85,7 @@ public class UserUnreadMessageRepository {
             pstmt.executeUpdate();
             return true;
         } catch (SQLException e) {
-            System.err.println("Error marking all direct messages as read: " + e.getMessage());
+            logger.error("Error marking all direct messages as read between users {} and {}", userId, otherUserId, e);
             throw e;
         }
     }
@@ -114,7 +117,7 @@ public class UserUnreadMessageRepository {
                 unreadMessages.add(new Message(id, senderId, receiverId, roomId, content, direct, timestamp));
             }
         } catch (SQLException e) {
-            System.err.println("Error getting unread messages: " + e.getMessage());
+            logger.error("Error retrieving unread messages for user {}", userId, e);
             throw e;
         }
         return unreadMessages;
@@ -132,7 +135,7 @@ public class UserUnreadMessageRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            System.err.println("Error getting unread message count: " + e.getMessage());
+            logger.error("Error getting unread message count for user {}", userId, e);
             throw e;
         }
         return 0;
@@ -153,7 +156,7 @@ public class UserUnreadMessageRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            System.err.println("Error getting unread message count for room: " + e.getMessage());
+            logger.error("Error getting unread message count for user {} in room {}", userId, roomId, e);
             throw e;
         }
         return 0;
@@ -178,7 +181,7 @@ public class UserUnreadMessageRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            System.err.println("Error getting unread direct message count: " + e.getMessage());
+            logger.error("Error getting unread direct message count between users {} and {}", userId, otherUserId, e);
             throw e;
         }
         return 0;
@@ -194,9 +197,10 @@ public class UserUnreadMessageRepository {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.executeUpdate();
+            logger.debug("Successfully cleaned up messages");
 
         } catch (SQLException e) {
-            System.err.println("Unable to cleanup messages: " + e.getMessage());
+            logger.error("Unable to cleanup messages", e);
         }
     }
 }

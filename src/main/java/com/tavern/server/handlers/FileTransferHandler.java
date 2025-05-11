@@ -276,12 +276,12 @@ public class FileTransferHandler implements RequestHandler {
                 // Verify final file size
                 long actualSize = Files.size(path);
                 if (actualSize != totalBytes) {
-                    System.err.println("File size mismatch: expected " + totalBytes + ", got " + actualSize);
+                    logger.error("File size mismatch: expected {}, got {}", totalBytes, actualSize);
                     // Delete the incomplete file
                     try {
                         Files.deleteIfExists(path);
                     } catch (IOException ex) {
-                        System.err.println("Failed to delete incomplete file: " + ex.getMessage());
+                        logger.error("Failed to delete incomplete file: {}", ex.getMessage(), ex);
                     }
                     client.sendMessage(new FileTransferError(chunk.getTransferId(),
                             "File size verification failed. Transfer incomplete. Please retry."));

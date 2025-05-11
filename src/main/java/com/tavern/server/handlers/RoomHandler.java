@@ -7,6 +7,8 @@ import com.tavern.server.core.ClientHandler;
 import com.tavern.server.core.RequestHandler;
 import com.tavern.server.data.manager.RoomManager;
 import com.tavern.server.data.repository.RoomRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -14,6 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 
 public class RoomHandler implements RequestHandler {
+    private static final Logger logger = LoggerFactory.getLogger(RoomHandler.class);
+
     public RoomHandler(HashMap<NetworkMessage.MessageType, RequestHandler> requestHandlers) {
         requestHandlers.put(NetworkMessage.MessageType.GET_ROOMS_REQUEST, this);
         requestHandlers.put(NetworkMessage.MessageType.GET_ROOM_USERS_REQUEST, this);
@@ -43,7 +47,7 @@ public class RoomHandler implements RequestHandler {
                     GetAllRoomsResponse response = new GetAllRoomsResponse(allRooms);
                     client.sendMessage(response);
                 } catch (SQLException e) {
-                    System.err.println("Database error when getting all rooms: " + e.getMessage());
+                    logger.error("Database error when getting all rooms", e);
                     client.sendMessage(new GetAllRoomsResponse(new ArrayList<>()));
                 }
             }
@@ -72,7 +76,7 @@ public class RoomHandler implements RequestHandler {
                 try {
                     room = RoomRepository.getRoomById(request.roomId());
                 } catch (SQLException e) {
-                    System.err.println("Database error when retrieving room: " + e.getMessage());
+                    logger.error("Database error when retrieving room: {}", request.roomId(), e);
                 }
                 
                 if (room != null) {

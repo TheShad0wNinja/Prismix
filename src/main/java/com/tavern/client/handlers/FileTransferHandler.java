@@ -287,7 +287,7 @@ public class FileTransferHandler implements ResponseHandler {
                 }
 
             } catch (IOException | InterruptedException e) {
-                System.err.println("Error sending file chunks: " + e.getMessage());
+                logger.error("Error sending file chunks: {}", e.getMessage(), e);
                 ThemedProgressBar pb = progressBars.remove(transferId);
                 if (pb != null) {
                     SwingUtilities.invokeLater(() -> {

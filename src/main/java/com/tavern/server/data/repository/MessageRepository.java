@@ -2,6 +2,8 @@ package com.tavern.server.data.repository;
 
 import com.tavern.common.model.Message;
 import com.tavern.server.utils.ServerDatabaseManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -9,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MessageRepository {
+    private static final Logger logger = LoggerFactory.getLogger(MessageRepository.class);
 
     private MessageRepository() {}
 
@@ -61,7 +64,7 @@ public class MessageRepository {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error creating message: " + e.getMessage());
+            logger.error("Error creating message", e);
             throw e;
         }
     }
@@ -78,7 +81,7 @@ public class MessageRepository {
                 return extractMessageFromResultSet(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error getting message by ID: " + e.getMessage());
+            logger.error("Error getting message by ID: {}", messageId, e);
             throw e;
         }
         return null;
@@ -99,7 +102,7 @@ public class MessageRepository {
                 messages.add(extractMessageFromResultSet(rs));
             }
         } catch (SQLException e) {
-            System.err.println("Error getting messages for room: " + e.getMessage());
+            logger.error("Error getting messages for room: {}, limit: {}, offset: {}", roomId, limit, offset, e);
             throw e;
         }
         return messages;
@@ -125,7 +128,8 @@ public class MessageRepository {
                 messages.add(extractMessageFromResultSet(rs));
             }
         } catch (SQLException e) {
-            System.err.println("Error getting direct messages: " + e.getMessage());
+            logger.error("Error getting direct messages between users {} and {}, limit: {}, offset: {}", 
+                        user1Id, user2Id, limit, offset, e);
             throw e;
         }
         return messages;
@@ -140,7 +144,7 @@ public class MessageRepository {
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
-            System.err.println("Error deleting message: " + e.getMessage());
+            logger.error("Error deleting message with ID: {}", messageId, e);
             throw e;
         }
     }
