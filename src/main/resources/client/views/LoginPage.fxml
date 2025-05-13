@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.geometry.Insets?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.tavern.client.views.LoginPage"
+>
+    <padding>
+        <Insets topRightBottomLeft="20"/>
+    </padding>
+
+    <top>
+        <VBox alignment="CENTER" BorderPane.alignment="CENTER">
+            <Label text="Login" styleClass="label, title"/>
+            <padding>
+                <Insets top="20" bottom="20"/>
+            </padding>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox alignment="CENTER" spacing="10">
+            <padding>
+                <Insets top="20" bottom="20" />
+            </padding>
+            <TextField fx:id="input"/>
+            <Button text="Login" maxWidth="Infinity" onAction="#handleLogin"/>
+            <Hyperlink text="Signup" maxWidth="Infinity" onAction="#handleSignupSwitch"/>
+        </VBox>
+    </center>
+
+</BorderPane>

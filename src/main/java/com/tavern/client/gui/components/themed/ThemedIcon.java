@@ -4,7 +4,7 @@ import com.tavern.client.gui.themes.Theme;
 import com.tavern.client.gui.themes.ThemeChangeListener;
 import com.tavern.client.gui.themes.ThemeManager;
 import com.tavern.client.gui.themes.ThemedComponent;
-import com.tavern.client.utils.AvatarDisplayHelper;
+import com.tavern.client.utils.AvatarHelper;
 
 import javax.swing.*;
 
@@ -31,13 +31,13 @@ public class ThemedIcon extends JLabel implements ThemedComponent, ThemeChangeLi
     }
 
     private void setIconImage() {
-        ImageIcon icon = AvatarDisplayHelper.getAvatarImageIcon(image, w, h);
+        ImageIcon icon = AvatarHelper.getAvatarImageIcon(image, w, h);
         if (variant == Variant.SQUARE) {
             setIcon(icon);
         } else if (variant == Variant.ROUNDED) {
-            setIcon(AvatarDisplayHelper.getRoundedImageIcon(icon, w, h, cornerRadius));
+            setIcon(AvatarHelper.getRoundedImageIcon(icon, w, h, cornerRadius));
         } else {
-            setIcon(AvatarDisplayHelper.getCircleImageIcon(icon, w, h));
+            setIcon(AvatarHelper.getCircleImageIcon(icon, w, h));
         }
     }
 

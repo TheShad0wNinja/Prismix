@@ -1,0 +1,136 @@
+/*
+ * JavaFX CSS Stylesheet based on the Swing MaterialTheme class.
+ * Defines theme colors, fonts, and basic styles using custom variables.
+ */
+
+/* ===============================================
+   1. Define Theme Colors and Fonts as Variables
+   =============================================== */
+* {
+    /* Colors from the light scheme */
+    -fx-primary-color: #006480;
+    -fx-on-primary-color: #FFFFFF;
+    -fx-secondary-color: #426372;
+    -fx-on-secondary-color: #FFFFFF;
+    -fx-tertiary-color: #764A8E;
+    -fx-on-tertiary-color: #FFFFFF;
+    -fx-error-color: #BA1A1A;
+    -fx-on-error-color: #FFFFFF;
+    -fx-background-color-theme: #F6FAFD; /* Renamed to avoid conflict with scene background */
+    -fx-on-background-color: #181C1F;
+    -fx-surface-color: #DAE4EA;
+    -fx-on-surface-color: #3E484D;
+    -fx-surface-variant-color: #DAE4EA; /* Same as surface in the light scheme */
+    -fx-on-surface-variant-color: #3E484D; /* Same as on surface in the light scheme */
+    -fx-outline-color: #6E797E;
+
+    -fx-background-color: -fx-background-color-theme;
+    /* Fonts */
+    /*-fx-default-font-family: "Arial", sans-serif; !* Default font family *!*/
+    /*-fx-default-font-size: 18px; !* Default font size *!*/
+    /*-fx-larger-font-size: 24px;*/
+    /*-fx-title-font-size: 32px;*/
+    /*-fx-smaller-font-size: 14px;*/
+
+    /* Other Theme Properties */
+    /*10px
+
+: 10px; !* Base button padding *!*/
+    /*10px: 10px; !* Corner radius *!*/
+}
+
+/* ===============================================
+   2. Apply Theme Variables to Common UI Elements
+   =============================================== */
+
+/* Apply background color to the root node (the scene background) */
+/* Using the renamed background variable to avoid ambiguity */
+
+.label, .button, .text-field, .password-field, .hyperlink, .check-box {
+    -fx-font-family: "FiraCode Nerd Font Propo", sans-serif;
+    -fx-font-size: 18px;
+    -fx-text-fill: -fx-on-background-color;
+}
+
+root {
+    -fx-background-color: -fx-background-color-theme;
+}
+
+
+/* Basic Label Styles */
+.label {
+    -fx-text-fill: -fx-on-background-color; /* Default text color */
+}
+
+/* Label with title style class */
+.label.title {
+    -fx-font-size: 42px !important;
+    -fx-font-weight: bold; /* Assuming title font was bold */
+}
+
+
+/* Label with smaller font style class */
+.label-small {
+    -fx-font-size: 0.8em;
+}
+
+/* Basic Button Styles */
+.button {
+    -fx-background-color: -fx-primary-color; /* Button background color */
+    -fx-text-fill: -fx-on-primary-color; /* Button text color */
+    -fx-padding: 10px;
+    -fx-background-radius: 10px; /* Apply corner radius */
+    -fx-border-radius: 10px;
+    -fx-cursor: HAND;
+}
+
+.button:hover {
+    -fx-background-color: derive(-fx-primary-color, 25%);
+}
+
+/* Basic TextField and PasswordField Styles */
+.text-field, .password-field {
+    -fx-background-color: -fx-background-color-theme; /* Background for input fields */
+    -fx-text-fill: -fx-on-background-color; /* Text color in input fields */
+    -fx-prompt-text-fill: derive(-fx-on-background-color, 50%); /* Lighter color for prompt text */
+    -fx-border-color: -fx-outline-color; /* Outline color */
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 8px; /* Smaller padding than buttons */
+}
+
+/* Basic Hyperlink Styles */
+.hyperlink {
+    -fx-text-fill: -fx-primary-color; /* Hyperlink color */
+    /*-fx-font-family: -fx-default-font-family;*/
+    /*-fx-font-size: -fx-default-font-size;*/
+}
+
+/* Error Text Style Class */
+.error-text {
+    -fx-text-fill: -fx-error-color; /* Error text color */
+    /*-fx-font-family: -fx-default-font-family;*/
+    /*-fx-font-size: -fx-default-font-size;*/
+}
+
+/* Basic Pane Styles (Apply with caution, very general) */
+/* If you want a specific style for your form container (StackPane),
+   it's better to use its style class ".form-container" */
+/*
+Pane {
+     -fx-background-color: -fx-surface-color;
+}
+*/
+
+/* Style for your form container StackPane */
+/*.form-container {*/
+/*    -fx-background-color: -fx-surface-color; !* Use surface color for container background *!*/
+/*    -fx-background-radius: 10px; !* Apply corner radius *!*/
+/*    -fx-border-color: -fx-outline-color; !* Optional border *!*/
+/*    -fx-border-radius: 10px;*/
+/*    -fx-border-width: 1px;*/
+/*}*/
+
+
+/* You can add more selectors for other UI elements and custom components */
+/* based on their types or style classes */

@@ -8,10 +8,11 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ConvolveOp;
 import java.awt.image.Kernel;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.awt.geom.Ellipse2D;
 
-public class AvatarDisplayHelper {
+public class AvatarHelper {
     // Sharpen kernel for small images - reduced intensity for more subtle effect
     private static final float[] SHARPEN_KERNEL = {
             0.0f, -0.1f, 0.0f,
@@ -97,7 +98,7 @@ public class AvatarDisplayHelper {
     private static ImageIcon getDefaultAvatarIcon(int width, int height) {
         try {
             ImageIcon defaultIcon = new ImageIcon(
-                    AvatarDisplayHelper.class.getClassLoader().getResource("client/images/default_avatar.jpeg")
+                    AvatarHelper.class.getClassLoader().getResource("client/images/default_avatar.jpeg")
             );
             return new ImageIcon(getHighQualityScaledImage(
                     imageIconToBufferedImage(defaultIcon), width, height));
@@ -205,5 +206,60 @@ public class AvatarDisplayHelper {
         if (roundedIcon != null) {
             label.setIcon(roundedIcon);
         }
+    }
+
+    public static byte[] createDefaultAvatar(String displayName) {
+        try {
+            // Create a blank image with user's initials
+            BufferedImage image = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = image.createGraphics();
+
+            // Fill background with a random color
+            int r = 100 + (int)(Math.random() * 155);
+            int g2 = 100 + (int)(Math.random() * 155);
+            int b = 100 + (int)(Math.random() * 155);
+            g.setColor(new Color(r, g2, b)); // Use java.awt.Color
+            g.fillRect(0, 0, 64, 64);
+
+            // Add text
+            g.setColor(java.awt.Color.WHITE); // Use java.awt.Color
+            g.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24)); // Use java.awt.Font
+
+            // Get initials from display name
+            String initials = displayName.length() > 0 ?
+                    displayName.substring(0, 1).toUpperCase() : "?";
+            if (displayName.contains(" ")) {
+                String[] parts = displayName.split(" ");
+                if (parts.length > 1 && parts[1].length() > 0) {
+                    initials += parts[1].substring(0, 1).toUpperCase();
+                }
+            }
+
+            // Center text
+            FontMetrics metrics = g.getFontMetrics(); // Use java.awt.FontMetrics
+            int x = (64 - metrics.stringWidth(initials)) / 2;
+            int y = ((64 - metrics.getHeight()) / 2) + metrics.getAscent();
+
+            g.drawString(initials, x, y);
+            g.dispose();
+
+            // Convert to byte array
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos); // Write as PNG
+            return baos.toByteArray();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new byte[0];
+        }
+    }
+
+    public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = resizedImage.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+        g.dispose();
+        return resizedImage;
     }
 }

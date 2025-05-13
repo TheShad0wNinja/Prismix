@@ -124,9 +124,9 @@ public class MainFrame extends JFrame implements EventListener {
 
     @Override
     public void onEvent(ApplicationEvent event) {
-        if (event.type() == ApplicationEvent.Type.SWITCH_SCREEN) {
-            switchScreen((AppScreen) event.data());
-        }
+//        if (event.type() == ApplicationEvent.Type.SWITCH_SCREEN) {
+//            switchScreen((AppScreen) event.data());
+//        }
 //        switch (event.type()) {
 //            case USER_LOGGED_IN -> {
 //                Room defaultRoom = new Room(-1, "General", null);

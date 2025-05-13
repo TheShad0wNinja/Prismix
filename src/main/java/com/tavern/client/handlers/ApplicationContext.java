@@ -29,7 +29,6 @@ public class ApplicationContext {
         this.videoChatHandler = new VideoChatHandler(eventBus, userHandler, responseHandlers);
         this.fileTransferHandler = new FileTransferHandler(eventBus, userHandler, responseHandlers);
         this.properties = new PropertyFileLoader("client/application.properties");
-
         this.client = new Client(responseHandlers);
     }
 

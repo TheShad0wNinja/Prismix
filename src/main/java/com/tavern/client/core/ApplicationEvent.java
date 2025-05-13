@@ -6,6 +6,7 @@ public record ApplicationEvent(Type type, Object data) {
     }
     public enum Type {
         SWITCH_SCREEN,
+        SWITCH_PAGE,
         AUTH_ERROR,
         DIRECT_SCREEN_SELECTED,
         USER_LOGGED_IN,
