@@ -4,10 +4,7 @@ import com.tavern.client.components.Cleanable;
 import com.tavern.client.core.ApplicationEvent;
 import com.tavern.client.core.EventListener;
 import com.tavern.client.handlers.ApplicationContext;
-import com.tavern.client.views.AppPage;
-import com.tavern.client.views.LoginPage;
-import com.tavern.client.views.PageData;
-import com.tavern.client.views.SignupPage;
+import com.tavern.client.views.*;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Parent;
@@ -50,6 +47,7 @@ public class TavernApplicationFX extends Application implements EventListener {
         PageData pd = switch (page) {
             case LOGIN -> LoginPage.load();
             case SIGNUP -> SignupPage.load();
+            case MAIN -> MainPage.load();
             default -> throw new IllegalStateException("Unexpected value: " + page);
         };
 

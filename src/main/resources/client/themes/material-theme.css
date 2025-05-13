@@ -23,8 +23,6 @@
     -fx-surface-variant-color: #DAE4EA; /* Same as surface in the light scheme */
     -fx-on-surface-variant-color: #3E484D; /* Same as on surface in the light scheme */
     -fx-outline-color: #6E797E;
-
-    -fx-background-color: -fx-background-color-theme;
     /* Fonts */
     /*-fx-default-font-family: "Arial", sans-serif; !* Default font family *!*/
     /*-fx-default-font-size: 18px; !* Default font size *!*/
@@ -52,7 +50,7 @@
     -fx-text-fill: -fx-on-background-color;
 }
 
-root {
+root, BorderPane {
     -fx-background-color: -fx-background-color-theme;
 }
 
@@ -101,36 +99,10 @@ root {
 
 /* Basic Hyperlink Styles */
 .hyperlink {
-    -fx-text-fill: -fx-primary-color; /* Hyperlink color */
-    /*-fx-font-family: -fx-default-font-family;*/
-    /*-fx-font-size: -fx-default-font-size;*/
+    -fx-text-fill: -fx-primary-color;
 }
 
 /* Error Text Style Class */
 .error-text {
-    -fx-text-fill: -fx-error-color; /* Error text color */
-    /*-fx-font-family: -fx-default-font-family;*/
-    /*-fx-font-size: -fx-default-font-size;*/
+    -fx-text-fill: -fx-error-color;
 }
-
-/* Basic Pane Styles (Apply with caution, very general) */
-/* If you want a specific style for your form container (StackPane),
-   it's better to use its style class ".form-container" */
-/*
-Pane {
-     -fx-background-color: -fx-surface-color;
-}
-*/
-
-/* Style for your form container StackPane */
-/*.form-container {*/
-/*    -fx-background-color: -fx-surface-color; !* Use surface color for container background *!*/
-/*    -fx-background-radius: 10px; !* Apply corner radius *!*/
-/*    -fx-border-color: -fx-outline-color; !* Optional border *!*/
-/*    -fx-border-radius: 10px;*/
-/*    -fx-border-width: 1px;*/
-/*}*/
-
-
-/* You can add more selectors for other UI elements and custom components */
-/* based on their types or style classes */

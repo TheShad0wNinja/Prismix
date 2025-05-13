@@ -21,7 +21,6 @@ public class MessageListener implements Runnable {
         while (manager.isConnected()) {
             try {
                 NetworkMessage msg = manager.receiveMessage();
-                logger.debug("Received message: {}", msg);
                 new Thread(() -> client.processMessage(msg)).start();
             } catch (IOException | ClassNotFoundException e) {
                 logger.error("Error receiving message: {}", e.getMessage(), e);

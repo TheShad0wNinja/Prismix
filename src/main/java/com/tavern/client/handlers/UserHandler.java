@@ -5,6 +5,7 @@ import com.tavern.client.gui.screens.MainFrame;
 import com.tavern.client.repositories.MessageRepository;
 import com.tavern.client.utils.ConnectionManager;
 import com.tavern.client.core.EventBus;
+import com.tavern.client.views.AppPage;
 import com.tavern.common.model.User;
 import com.tavern.common.model.network.*;
 import org.slf4j.Logger;
@@ -62,47 +63,49 @@ public class UserHandler implements ResponseHandler {
         }
     }
 
+    private void handleAuthResponse(NetworkMessage message) {
+        boolean status = switch (message.getMessageType()) {
+            case LOGIN_RESPONSE -> ((LoginResponse) message).status();
+            case SIGNUP_RESPONSE -> ((SignupResponse) message).status();
+            default -> throw new IllegalStateException("Unexpected value: " + message.getMessageType());
+        };
+        this.user = switch (message.getMessageType()) {
+            case LOGIN_RESPONSE ->  ((LoginResponse) message).user();
+            case SIGNUP_RESPONSE ->  ((SignupResponse) message).user();
+            default -> throw new IllegalStateException("Unexpected value: " + message.getMessageType());
+        };
+
+        if (status) {
+            eventBus.publish(new ApplicationEvent(
+                    ApplicationEvent.Type.USER_LOGGED_IN,
+                    this.user
+            ));
+            eventBus.publish(new ApplicationEvent(
+                    ApplicationEvent.Type.SWITCH_PAGE,
+                    AppPage.MAIN
+            ));
+            return;
+        }
+
+        String errorMessage = switch (message.getMessageType()) {
+            case LOGIN_RESPONSE -> ((LoginResponse) message).errorMessage();
+            case SIGNUP_RESPONSE -> ((SignupResponse) message).errorMessage();
+            default -> throw new IllegalStateException("Unexpected value: " + message.getMessageType());
+        };
+
+        eventBus.publish(new ApplicationEvent(
+                ApplicationEvent.Type.AUTH_ERROR,
+                errorMessage
+        ));
+    }
+
     @Override
     public void handleResponse(NetworkMessage message) {
         switch (message.getMessageType()) {
-            case LOGIN_RESPONSE -> {
-                LoginResponse res = (LoginResponse) message;
-                if (res.status()) {
-                    user = res.user();
-                    eventBus.publish(new ApplicationEvent(
-                            ApplicationEvent.Type.USER_LOGGED_IN,
-                            user
-                    ));
-                    eventBus.publish(new ApplicationEvent(
-                            ApplicationEvent.Type.SWITCH_SCREEN,
-                            MainFrame.AppScreen.CHAT_SCREEN
-                    ));
-                } else {
-                    eventBus.publish(new ApplicationEvent(
-                            ApplicationEvent.Type.AUTH_ERROR,
-                            res.errorMessage()
-                    ));
-                }
+            case LOGIN_RESPONSE, SIGNUP_RESPONSE -> {
+                handleAuthResponse(message);
             }
-            case SIGNUP_RESPONSE -> {
-                SignupResponse res = (SignupResponse) message;
-                if (res.status()) {
-                    user = res.user();
-                    eventBus.publish(new ApplicationEvent(
-                            ApplicationEvent.Type.USER_LOGGED_IN,
-                            user
-                    ));
-                    eventBus.publish(new ApplicationEvent(
-                            ApplicationEvent.Type.SWITCH_SCREEN,
-                            MainFrame.AppScreen.CHAT_SCREEN
-                    ));
-                } else {
-                    eventBus.publish(new ApplicationEvent(
-                            ApplicationEvent.Type.AUTH_ERROR,
-                            res.errorMessage()
-                    ));
-                }
-            }
+
             case GET_USERS_INFO_RESPONSE -> {
                 GetUsersInfoResponse response = (GetUsersInfoResponse) message;
                 ApplicationContext.getEventBus().publish(new ApplicationEvent(ApplicationEvent.Type.DIRECT_USER_LIST_UPDATED, response.users()));
