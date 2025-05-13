@@ -95,10 +95,10 @@ public class AvatarHelper {
         return op.filter(image, null);
     }
 
-    private static ImageIcon getDefaultAvatarIcon(int width, int height) {
+    public static ImageIcon getDefaultAvatarIcon(int width, int height) {
         try {
             ImageIcon defaultIcon = new ImageIcon(
-                    AvatarHelper.class.getClassLoader().getResource("client/images/default_avatar.jpeg")
+                    AvatarHelper.class.getResource("/client/images/default_avatar.jpeg")
             );
             return new ImageIcon(getHighQualityScaledImage(
                     imageIconToBufferedImage(defaultIcon), width, height));
@@ -108,7 +108,7 @@ public class AvatarHelper {
             return new ImageIcon(placeholder);
         }
     }
-    
+
     private static BufferedImage imageIconToBufferedImage(ImageIcon icon) {
         Image image = icon.getImage();
         if (image instanceof BufferedImage) {
