@@ -5,22 +5,16 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.image.*?>
 
-<HBox xmlns="http://javafx.com/javafx"
-      xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.tavern.client.components.RoomEntry"
-      alignment="CENTER_LEFT"
-      spacing="10"
-      styleClass="room-entry">
-    
-    <!-- Room avatar -->
-    <StackPane fx:id="avatarContainer" styleClass="avatar-container">
-        <ImageView fx:id="roomAvatar" fitHeight="40" fitWidth="40" preserveRatio="true" />
-    </StackPane>
-    
-    <!-- Room name -->
-    <Label fx:id="roomNameLabel" text="Room Name" styleClass="room-name" HBox.hgrow="ALWAYS" />
-    
+<fx:root xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         type="javafx.scene.control.Button"
+         styleClass="wrapper">
+
+    <graphic>
+        <ImageView fx:id="roomAvatar" fitHeight="40" fitWidth="40" preserveRatio="true"/>
+    </graphic>
+
     <padding>
-        <Insets top="8" right="10" bottom="8" left="10" />
+        <Insets topRightBottomLeft="5" />
     </padding>
-</HBox>
+</fx:root>

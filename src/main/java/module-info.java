@@ -9,6 +9,7 @@ module Tavern {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.swing;
+    requires annotations;
 
     opens com.tavern.client.gui.screens to javafx.fxml;
     

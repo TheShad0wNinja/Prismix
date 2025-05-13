@@ -1,0 +1,31 @@
+.wrapper {
+    -fx-background-color: transparent;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-cursor: hand;
+}
+
+.wrapper:hover {
+    -fx-background-color: derive(-fx-surface-color, 40%);
+    -fx-text-fill: derive(-fx-on-surface-color, 25%);
+}
+
+.wrapper.selected {
+    -fx-background-color: derive(-fx-surface-color, 40%);
+    -fx-text-fill: derive(-fx-on-surface-color, 25%);
+    -fx-cursor: default;
+}
+
+.wrapper > #roomAvatar {
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.wrapper:hover > #roomAvatar {
+    -fx-opacity: 0.9;
+}
+
+.wrapper.selected:hover > #roomAvatar,
+.wrapper.selected > #roomAvatar {
+    -fx-opacity: 1.0; /* Keep the opacity at 1.0 when selected */
+}

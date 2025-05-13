@@ -12,6 +12,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
@@ -41,7 +42,7 @@ public class MainSidebar extends VBox implements Initializable, EventListener {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-         roomsPanelChildren = roomsPanel.getChildren();
+        roomsPanelChildren = roomsPanel.getChildren();
         roomsPanel.setSpacing(5);
         roomsPanel.setPadding(new Insets(5));
 
@@ -55,27 +56,16 @@ public class MainSidebar extends VBox implements Initializable, EventListener {
 
     private void updateRoomList() {
         Platform.runLater(() -> {
+            roomsPanelChildren.forEach(room -> {
+                RoomEntry r = (RoomEntry) room;
+                r.clean();
+            });
             roomsPanelChildren.clear();
             for (Room room : rooms) {
-                RoomEntryPanel roomEntry = new RoomEntryPanel(room);
+                Parent roomEntry = new RoomEntry(room);
                 roomsPanelChildren.add(roomEntry); // Insert before the last 4 elements
             }
         });
-    }
-
-
-    public static class RoomEntryPanel extends VBox{
-        private Label nameLabel;
-        private Label idLabel;
-
-        public RoomEntryPanel(Room room){
-            nameLabel = new Label("Name: " + room.getName());
-            idLabel = new Label("ID: " + room.getId());
-
-            this.getChildren().addAll(nameLabel, idLabel);
-            this.setPadding(new Insets(5));
-            this.setStyle("-fx-border-color: gray; -fx-border-width: 1;");
-        }
     }
 
     @Override
