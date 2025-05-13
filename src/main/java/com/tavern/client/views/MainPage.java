@@ -1,6 +1,7 @@
 package com.tavern.client.views;
 
 import com.tavern.client.components.Cleanable;
+import com.tavern.client.components.MainHeader;
 import com.tavern.client.components.MainSidebar;
 import com.tavern.client.handlers.ApplicationContext;
 import javafx.fxml.FXML;
@@ -15,6 +16,9 @@ public class MainPage implements Initializable, Cleanable {
 
     @FXML
     public MainSidebar sidebar;
+
+    @FXML
+    public MainHeader header;
 
     public static PageData load() {
         FXMLLoader fxmlLoader = new FXMLLoader(MainPage.class.getResource("/client/views/MainPage.fxml"));

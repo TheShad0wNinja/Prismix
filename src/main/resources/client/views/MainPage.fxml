@@ -6,11 +6,16 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import com.tavern.client.components.MainSidebar ?>
+<?import com.tavern.client.components.MainHeader ?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.tavern.client.views.MainPage"
             >
+
+    <top>
+        <MainHeader fx:id="header" />
+    </top>
 
     <left>
         <MainSidebar fx:id="sidebar"/>
