@@ -162,8 +162,8 @@ public class SignupPage implements Initializable, EventListener, Cleanable {
     @FXML
     private void goBackToLogin() {
         ApplicationContext.getEventBus().publish(new ApplicationEvent(
-                ApplicationEvent.Type.SWITCH_SCREEN,
-                MainFrame.AppScreen.LOGIN_SCREEN
+                ApplicationEvent.Type.SWITCH_PAGE,
+                AppPage.LOGIN
         ));
     }
 
