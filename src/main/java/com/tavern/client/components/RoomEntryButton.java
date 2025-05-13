@@ -25,19 +25,31 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 
-public class RoomEntry extends Button implements EventListener, Initializable, Cleanable {
+public class RoomEntryButton extends Button implements EventListener, Initializable, Cleanable {
     @FXML
     private ImageView roomAvatar;
 
-    private final Room room;
     private boolean isSelected;
+    private final String name;
+    private final byte[] icon;
+    private final Runnable action;
+    private final Function<Object, Boolean> isSelectedCallable;
 
-    public RoomEntry(Room room) {
-        this.room = room;
-        this.isSelected = ApplicationContext.getRoomHandler().getCurrentRoom() != null &&
-                ApplicationContext.getRoomHandler().getCurrentRoom().equals(room);
+    public RoomEntryButton(String name, byte[] icon, Runnable action, Function<Object, Boolean> isSelected) {
+        try {
+            this.isSelected = isSelected.apply(null);
+        } catch (Exception e) {
+            this.isSelected = false;
+        }
+        this.name = name;
+        this.icon = icon;
+        this.action = action;
+        this.isSelectedCallable = isSelected;
 
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/client/components/RoomEntry.fxml"));
 
@@ -55,7 +67,7 @@ public class RoomEntry extends Button implements EventListener, Initializable, C
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        Tooltip tooltip = new Tooltip(room.getName());
+        Tooltip tooltip = new Tooltip(name);
         tooltip.setShowDelay(Duration.millis(200));
         tooltip.setStyle("""
                     -fx-font-size: 15px;
@@ -70,7 +82,7 @@ public class RoomEntry extends Button implements EventListener, Initializable, C
         this.setTooltip(tooltip);
 
         // Set room avatar if available
-        Image avatar = SwingFXUtils.toFXImage((BufferedImage) AvatarHelper.getRoundedImageIcon(AvatarHelper.getAvatarImageIcon(room.getAvatar(), 40, 40), 40, 40, 10).getImage(), null);
+        Image avatar = SwingFXUtils.toFXImage((BufferedImage) AvatarHelper.getRoundedImageIcon(AvatarHelper.getAvatarImageIcon(icon, 40, 40), 40, 40, 10).getImage(), null);
         roomAvatar.setImage(avatar);
 
         // Apply selected state if this room is selected
@@ -80,10 +92,7 @@ public class RoomEntry extends Button implements EventListener, Initializable, C
         ApplicationContext.getEventBus().subscribe(this);
 
         this.setOnAction(e -> {
-            ApplicationContext.getEventBus().publish(new ApplicationEvent(
-                    ApplicationEvent.Type.ROOM_SELECTED,
-                    room
-            ));
+            action.run();
         });
     }
 
@@ -99,18 +108,15 @@ public class RoomEntry extends Button implements EventListener, Initializable, C
 
     @Override
     public void onEvent(ApplicationEvent event) {
-        if (event.type() == ApplicationEvent.Type.ROOM_SELECTED) {
-            Room selectedRoom = (Room) event.data();
-            boolean wasSelected = isSelected;
-
-            isSelected = selectedRoom != null && selectedRoom.equals(this.room);
-
-            if (wasSelected != isSelected) {
-                Platform.runLater(this::updateSelectedState);
+        if (event.type() == ApplicationEvent.Type.DIRECT_SCREEN_SELECTED || event.type() == ApplicationEvent.Type.ROOM_SELECTED) {
+            boolean newState = isSelected;
+            try {
+                newState = isSelectedCallable.apply(event.type());
+            } catch (Exception _) {
             }
-        } else if (event.type() == ApplicationEvent.Type.DIRECT_SCREEN_SELECTED) {
-            if (isSelected) {
-                isSelected = false;
+
+            if (newState != this.isSelected) {
+                this.isSelected = newState;
                 Platform.runLater(this::updateSelectedState);
             }
         }

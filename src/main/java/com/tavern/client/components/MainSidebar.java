@@ -13,11 +13,14 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -25,7 +28,14 @@ public class MainSidebar extends VBox implements Initializable, EventListener {
     @FXML
     private VBox roomsPanel;
 
-    private ObservableList<Room> rooms = FXCollections.observableArrayList();
+    @FXML
+    private ScrollPane scrollPane;
+
+    private Button directMessagesBtn;
+    private Button createRoomBtn;
+    private Button discoverRoomBtn;
+
+    private final ObservableList<Room> rooms = FXCollections.observableArrayList();
     private ObservableList<Node> roomsPanelChildren;
 
     public MainSidebar() {
@@ -46,6 +56,23 @@ public class MainSidebar extends VBox implements Initializable, EventListener {
         roomsPanel.setSpacing(5);
         roomsPanel.setPadding(new Insets(5));
 
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+
+        directMessagesBtn = new RoomEntryButton(
+                "Direct Messages",
+                null,
+                () -> {
+                    ApplicationContext.getEventBus().publish(new ApplicationEvent(ApplicationEvent.Type.DIRECT_SCREEN_SELECTED, null));
+                },
+                (eventType) -> {
+                    if (eventType == null)
+                        return false;
+
+                    return eventType == ApplicationEvent.Type.DIRECT_SCREEN_SELECTED;
+                }
+        );
+
         rooms.addListener((javafx.collections.ListChangeListener<? super Room>) c -> {
             updateRoomList();
         });
@@ -61,9 +88,10 @@ public class MainSidebar extends VBox implements Initializable, EventListener {
                 r.clean();
             });
             roomsPanelChildren.clear();
+            roomsPanelChildren.add(directMessagesBtn);
             for (Room room : rooms) {
                 Parent roomEntry = new RoomEntry(room);
-                roomsPanelChildren.add(roomEntry); // Insert before the last 4 elements
+                roomsPanelChildren.add(roomEntry);
             }
         });
     }
@@ -72,7 +100,6 @@ public class MainSidebar extends VBox implements Initializable, EventListener {
     public void onEvent(ApplicationEvent event) {
         if (event.type() == ApplicationEvent.Type.ROOM_LIST_UPDATED) {
             List<Room> rooms = (List<Room>) event.data();
-            this.rooms.clear();
             this.rooms.setAll(rooms);
         }
     }

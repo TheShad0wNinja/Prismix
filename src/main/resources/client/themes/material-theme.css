@@ -44,7 +44,7 @@
 /* Apply background color to the root node (the scene background) */
 /* Using the renamed background variable to avoid ambiguity */
 
-.label, Button, .text-field, .password-field, .hyperlink, .check-box {
+Label, Button, .text-field, .password-field, Hyperlink, .check-box {
     -fx-font-family: "FiraCode Nerd Font Propo", sans-serif;
     -fx-font-size: 18px;
     -fx-text-fill: -fx-on-background-color;
@@ -55,21 +55,10 @@ root, BorderPane {
 }
 
 
-/* Basic Label Styles */
-.label {
-    -fx-text-fill: -fx-on-background-color; /* Default text color */
-}
-
 /* Label with title style class */
-.label.title {
+Label.title {
     -fx-font-size: 42px !important;
     -fx-font-weight: bold; /* Assuming title font was bold */
-}
-
-
-/* Label with smaller font style class */
-.label-small {
-    -fx-font-size: 0.8em;
 }
 
 /* Basic Button Styles */
@@ -98,7 +87,7 @@ Button:hover {
 }
 
 /* Basic Hyperlink Styles */
-.hyperlink {
+Hyperlink {
     -fx-text-fill: -fx-primary-color;
 }
 
