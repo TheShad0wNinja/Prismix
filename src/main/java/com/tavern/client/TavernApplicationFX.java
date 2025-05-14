@@ -25,7 +25,7 @@ public class TavernApplicationFX extends Application implements EventListener {
     @Override
     public void start(Stage primaryStage) {
         root = new BorderPane();
-        root.getStylesheets().add(getClass().getResource("/client/themes/material-theme.css").toExternalForm());
+        root.getStylesheets().add(getClass().getResource("/client/themes/tavern-dark-theme.css").toExternalForm());
         switchPage(AppPage.LOGIN);
 
         Scene scene = new Scene(root, 800, 600);

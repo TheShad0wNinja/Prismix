@@ -15,13 +15,14 @@
          maxWidth="Infinity"
          type="javafx.scene.layout.HBox"
          spacing="10"
-        style="-fx-background-color: -fx-surface-color; -fx-text-fill: -fx-on-surface-color">
+         styleClass="panel"
+>
 
     <padding>
-        <Insets top="5" bottom="5" left="10" right="10" />
+        <Insets top="5" bottom="5" left="10" right="10"/>
     </padding>
 
-    <ImageView preserveRatio="true" fx:id="icon" />
-    <Label fx:id="label" text="General" style="-fx-font-size: 14; -fx-font-weight: 700" styleClass="label" />
+    <ImageView preserveRatio="true" fx:id="icon"/>
+    <Label fx:id="label" text="General" style="-fx-font-size: 14; -fx-font-weight: 700" styleClass="label"/>
 
 </fx:root>

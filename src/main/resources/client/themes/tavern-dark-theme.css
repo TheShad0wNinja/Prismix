@@ -1,0 +1,206 @@
+/*
+ * JavaFX CSS Stylesheet - Fantasy Tavern Dark Theme
+ * A cozy, atmospheric dark theme inspired by medieval fantasy taverns
+ * with warm wood tones, amber lighting, and rustic elements.
+ */
+
+/* ===============================================
+   1. Define Theme Colors and Fonts as Variables
+   =============================================== */
+* {
+    /* Colors for the fantasy tavern dark theme */
+    -fx-primary-color: #B85C38;         /* Rich amber/copper - like tavern lanterns */
+    -fx-on-primary-color: #FFE6CC;      /* Light cream - visible on dark wood */
+    -fx-secondary-color: #704214;       /* Dark wood brown - like oak barrels */
+    -fx-on-secondary-color: #FFE6CC;    /* Light cream for text on dark wood */
+    -fx-tertiary-color: #8E6B4A;        /* Medium wood - like tavern tables */
+    -fx-on-tertiary-color: #FFE6CC;     /* Light cream for text on wood */
+    -fx-error-color: #E04D36;           /* Warm red - like hearth fire */
+    -fx-on-error-color: #FFFFFF;        /* Pure white - for maximum contrast on errors */
+    -fx-background-color-theme: #1E1711; /* Deep brown/black - shadowy tavern corners */
+    -fx-on-background-color: #D6BC99;   /* Warm beige - like parchment */
+    -fx-surface-color: #2C2017;         /* Dark brown - like stained wood */
+    -fx-on-surface-color: #D6BC99;      /* Warm beige for text */
+    -fx-surface-variant-color: #352413; /* Slightly lighter brown - for variety */
+    -fx-on-surface-variant-color: #C4A775; /* Slightly darker beige - for subtle text */
+    -fx-outline-color: #634832;         /* Medium brown - visible but not harsh */
+
+    /* Fonts - Consider medieval/fantasy style fonts */
+    /* You can use Google Fonts or other custom fonts for a more authentic feel */
+    /* Adjust font sizes to match the cozy tavern atmosphere */
+}
+
+/* ===============================================
+   2. Apply Theme Variables to Common UI Elements
+   =============================================== */
+
+/* Apply background color to the root node (the scene background) */
+root, BorderPane {
+    -fx-background-color: -fx-background-color-theme;
+}
+
+/* Text styling for all common elements */
+Label, Button, TextField, PasswordField, Hyperlink {
+    -fx-font-family: "FiraCode Nerd Font", serif;
+    -fx-font-size: 18px;
+    -fx-text-fill: -fx-on-background-color;
+}
+
+/* Label with title style class - like a tavern sign */
+Label.title {
+    -fx-font-size: 42px !important;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-primary-color;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.6), 5, 0.0, 0, 1);
+}
+
+/* Basic Button Styles - like wooden tavern buttons */
+Button {
+    -fx-background-color: -fx-tertiary-color;
+    -fx-text-fill: -fx-on-tertiary-color;
+    -fx-padding: 10px;
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-cursor: HAND;
+    -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.4), 3, 0.0, 0, 1);
+    -fx-border-color: derive(-fx-tertiary-color, -20%);
+    -fx-border-width: 1px;
+}
+
+Button:hover {
+    -fx-background-color: derive(-fx-tertiary-color, 15%);
+    -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.2), 1, 0.0, 0, 1);
+}
+
+Button:pressed {
+    -fx-background-color: derive(-fx-tertiary-color, -10%);
+    -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.6), 5, 0.0, 0, 1);
+}
+
+/* Primary action buttons - like important tavern actions */
+Button.primary {
+    -fx-background-color: -fx-primary-color;
+    -fx-text-fill: -fx-on-primary-color;
+    -fx-border-color: derive(-fx-primary-color, -20%);
+}
+
+Button.primary:hover {
+    -fx-background-color: derive(-fx-primary-color, 15%);
+}
+
+Button.primary:pressed {
+    -fx-background-color: derive(-fx-primary-color, -10%);
+}
+
+/* Basic TextField and PasswordField Styles - like tavern scrolls */
+TextField, PasswordField {
+    -fx-background-color: -fx-surface-color;
+    -fx-text-fill: -fx-on-surface-color;
+    -fx-prompt-text-fill: derive(-fx-on-surface-color, -30%);
+    -fx-border-color: -fx-outline-color;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 8px;
+    -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.2), 2, 0.0, 0, 1);
+}
+
+TextField:focused, PasswordField:focused {
+    -fx-border-color: -fx-primary-color;
+    -fx-background-color: derive(-fx-surface-color, 5%);
+}
+
+/* Basic Hyperlink Styles - like magical inscriptions */
+Hyperlink {
+    -fx-text-fill: -fx-primary-color;
+    -fx-underline: false;
+    -fx-border-width: 0;
+}
+
+Hyperlink:hover {
+    -fx-text-fill: derive(-fx-primary-color, 25%);
+    -fx-underline: true;
+}
+
+Hyperlink:visited {
+    -fx-text-fill: derive(-fx-primary-color, -15%);
+}
+
+/* Error Text Style Class - like warnings from the barkeep */
+.error-text {
+    -fx-text-fill: -fx-error-color;
+    -fx-font-weight: bold;
+}
+
+/* Panel styling - for sections of UI like wooden panels */
+.panel {
+    -fx-background-color: -fx-surface-variant-color;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: -fx-outline-color;
+    -fx-border-width: 1px;
+    -fx-padding: 5px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0.0, 0, 3);
+}
+
+/* Separator styling - like wooden planks or dividers */
+Separator {
+    -fx-background-color: -fx-outline-color;
+    -fx-opacity: 0.7;
+}
+
+/* Scrollbar styling - like wooden scrolls */
+.scroll-bar {
+    -fx-background-color: -fx-surface-color;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -fx-tertiary-color;
+    -fx-background-radius: 5px;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: derive(-fx-tertiary-color, 15%);
+}
+
+/* Table styling - like tavern menus or ledgers */
+TableView {
+    -fx-background-color: -fx-surface-color;
+    -fx-table-cell-border-color: derive(-fx-outline-color, -10%);
+}
+
+TableView .column-header {
+    -fx-background-color: -fx-secondary-color;
+    -fx-text-fill: -fx-on-secondary-color;
+}
+
+TableView .table-cell {
+    -fx-text-fill: -fx-on-surface-color;
+}
+
+TableView .table-row-cell:odd {
+    -fx-background-color: derive(-fx-surface-color, 5%);
+}
+
+TableView .table-row-cell:selected {
+    -fx-background-color: derive(-fx-primary-color, -20%);
+    -fx-text-fill: -fx-on-primary-color;
+}
+
+/* List styling - like tavern notice boards */
+ListView {
+    -fx-background-color: -fx-surface-color;
+}
+
+ListView .list-cell {
+    -fx-background-color: -fx-surface-color;
+    -fx-text-fill: -fx-on-surface-color;
+}
+
+ListView .list-cell:odd {
+    -fx-background-color: derive(-fx-surface-color, 5%);
+}
+
+ListView .list-cell:selected {
+    -fx-background-color: derive(-fx-primary-color, -20%);
+    -fx-text-fill: -fx-on-primary-color;
+}

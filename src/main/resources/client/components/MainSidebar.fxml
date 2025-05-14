@@ -9,6 +9,7 @@
 <?import javafx.geometry.Insets?>
 <fx:root type="javafx.scene.layout.VBox" xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
+         styleClass="panel"
 >
 
     <ScrollPane fx:id="scrollPane" fitToWidth="true" VBox.vgrow="ALWAYS"
