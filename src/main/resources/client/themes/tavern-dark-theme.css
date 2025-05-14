@@ -162,6 +162,12 @@ Separator {
     -fx-background-color: derive(-fx-tertiary-color, 15%);
 }
 
+ScrollPane {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
 /* Table styling - like tavern menus or ledgers */
 TableView {
     -fx-background-color: -fx-surface-color;
