@@ -146,6 +146,7 @@ Hyperlink:visited {
 Separator {
     -fx-background-color: -fx-outline-color;
     -fx-opacity: 0.7;
+    -fx-background: -fx-background-color-theme;
 }
 
 /* Scrollbar styling - like wooden scrolls */

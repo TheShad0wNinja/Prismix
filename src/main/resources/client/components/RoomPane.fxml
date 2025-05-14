@@ -13,4 +13,8 @@
     <center>
         <fx:include fx:id="chatPane" source="ChatPane.fxml" />
     </center>
+
+    <right>
+        <fx:include fx:id="userSidebar" source="RoomUsersSidebar.fxml" />
+    </right>
 </fx:root>

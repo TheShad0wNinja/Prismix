@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.scene.image.ImageView?>
+<?import javafx.geometry.Insets?>
+<fx:root type="javafx.scene.layout.HBox" xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         alignment="CENTER_LEFT"
+         spacing="10"
+         maxWidth="150"
+         styleClass="wrapper"
+>
+    <padding>
+        <Insets left="10" right="10" top="5" bottom="5"/>
+    </padding>
+    <ImageView fx:id="avatar"/>
+    <VBox spacing="2">
+        <Label
+                fx:id="displayName"
+                style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: -fx-on-surface-color"
+        />
+        <Label
+                fx:id="username"
+                style="-fx-font-size:11px; -fx-text-fill: derive(-fx-on-surface-color, -25%)"
+        />
+    </VBox>
+
+</fx:root>

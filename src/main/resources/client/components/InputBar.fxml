@@ -20,6 +20,6 @@
 
     <TextField fx:id="messageField" HBox.hgrow="ALWAYS" promptText="Type your message here..." onAction="#sendMessage"/>
     <Button fx:id="sendButton" text="Send" onAction="#sendMessage" styleClass="primary"/>
-    <Button fx:id="uploadButton" text="Send" onAction="#uploadFile" styleClass="primary"/>
+    <Button fx:id="uploadButton" text="Upload" onAction="#uploadFile" styleClass="primary"/>
 
 </HBox>

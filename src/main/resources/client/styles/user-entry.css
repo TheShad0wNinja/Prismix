@@ -1,0 +1,23 @@
+.wrapper {
+    -fx-background-color: transparent;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+}
+
+.wrapper.hoverable {
+    -fx-cursor: hand;
+}
+
+.wrapper.hoverable:hover {
+    -fx-background-color: derive(-fx-surface-color, 40%);
+    -fx-text-fill: derive(-fx-on-surface-color, 25%);
+}
+
+.wrapper > #avatar {
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.wrapper.hoverable:hover > #avatar {
+    -fx-opacity: 0.9;
+}

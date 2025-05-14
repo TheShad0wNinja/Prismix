@@ -20,7 +20,7 @@ public class InputBar extends ThemedPanel implements EventListener {
     private static final Logger logger = LoggerFactory.getLogger(InputBar.class);
     private final ThemedTextArea messageInput;
     private final boolean isDirect;
-    private static final AtomicLong messageSerial = new AtomicLong(0);
+    public static final AtomicLong messageSerial = new AtomicLong(0);
 
     public InputBar(boolean isDirect) {
         super(Variant.SURFACE_ALT);

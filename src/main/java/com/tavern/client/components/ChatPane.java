@@ -74,13 +74,12 @@ public class ChatPane implements Initializable, EventListener, Cleanable {
                 MessageEntry messageEntry = new MessageEntry(user, msg);
                 chatArea.getChildren().add(messageEntry);
             } finally {
+                Platform.runLater(() -> {
+                    chatScrollPane.setVvalue(1.0);
+                });
                 isUpdating.set(false);
                 if (!messages.isEmpty()) {
                     processMessage();
-                } else {
-                    Platform.runLater(() -> {
-                        chatScrollPane.setVvalue(1.0);
-                    });
                 }
             }
         });

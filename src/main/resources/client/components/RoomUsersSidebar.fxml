@@ -5,9 +5,27 @@
 <?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.tavern.client.components.RoomUsersSidebar"
+      prefWidth="150"
+>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            >
+    <ScrollPane style="-fx-background: -fx-surface-color;"
+                hbarPolicy="NEVER"
+                vbarPolicy="NEVER"
+                fitToWidth="true"
+                VBox.vgrow="ALWAYS"
+                fx:id="scrollPane"
+    >
+        <VBox fx:id="usersArea"
+              alignment="CENTER_RIGHT"
+        >
+            <padding>
+                <Insets top="10" bottom="10"/>
+            </padding>
+        </VBox>
+    </ScrollPane>
 
-</AnchorPane>
+</VBox>

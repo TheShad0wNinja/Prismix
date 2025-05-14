@@ -13,8 +13,8 @@
 >
 
     <ScrollPane fx:id="scrollPane" fitToWidth="true" VBox.vgrow="ALWAYS"
-                style="-fx-background-color: transparent; -fx-background: -fx-surface-color; -fx-background-insets: 0; -fx-padding: 0;">
-        <VBox fx:id="roomsPanel" spacing="5" minWidth="40">
+                style="-fx-background-color: transparent; -fx-background: -fx-surface-variant-color; -fx-background-insets: 0; -fx-padding: 0;">
+        <VBox fx:id="roomsPanel" spacing="5">
             <padding>
                 <Insets bottom="5" left="5" right="5" />
             </padding>
