@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class ChatPane implements Initializable, EventListener, Cleanable {
     private static final Logger logger = LoggerFactory.getLogger(ChatPane.class);
@@ -41,7 +42,6 @@ public class ChatPane implements Initializable, EventListener, Cleanable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         isDirect = ApplicationContext.getMessageHandler().getCurrentDirectUser() != null;
-        System.out.println("CREATING");
         ApplicationContext.getEventBus().subscribe(this);
     }
 
@@ -73,11 +73,14 @@ public class ChatPane implements Initializable, EventListener, Cleanable {
 
                 MessageEntry messageEntry = new MessageEntry(user, msg);
                 chatArea.getChildren().add(messageEntry);
-                chatScrollPane.setVvalue(1.0);
             } finally {
                 isUpdating.set(false);
                 if (!messages.isEmpty()) {
                     processMessage();
+                } else {
+                    Platform.runLater(() -> {
+                        chatScrollPane.setVvalue(1.0);
+                    });
                 }
             }
         });
@@ -88,30 +91,30 @@ public class ChatPane implements Initializable, EventListener, Cleanable {
         ApplicationContext.getEventBus().unsubscribe(this);
     }
 
+    private boolean shouldProcessMessages(Message message) {
+        if (isDirect) {
+            int currentDirectUserId = ApplicationContext.getMessageHandler().getCurrentDirectUser().getId();
+            return message.getReceiverId() == currentDirectUserId || message.getSenderId() == currentDirectUserId;
+        }
+        return message.getRoomId() == ApplicationContext.getRoomHandler().getCurrentRoom().getId();
+    }
+
+
     @Override
     public void onEvent(ApplicationEvent event) {
         switch (event.type()) {
             case MESSAGE -> {
                 Message msg = (Message) event.data();
-                if (isDirect) {
-                    int currentDirectUserId = ApplicationContext.getMessageHandler().getCurrentDirectUser().getId();
-                    if (msg.getReceiverId() == currentDirectUserId || msg.getSenderId() == currentDirectUserId) {
-                        logger.debug("Got message: {}", msg);
-                        messages.offer(msg);
-                        processMessage();
-                    }
-                } else {
-                    if (msg.getRoomId() == ApplicationContext.getRoomHandler().getCurrentRoom().getId()) {
-                        logger.debug("Got message: {}", msg);
-                        messages.offer(msg);
-                        processMessage();
-                    }
+                if (shouldProcessMessages(msg)) {
+                    logger.debug("Got message: {}", msg);
+                    messages.offer(msg);
+                    processMessage();
                 }
             }
             case MESSAGES -> {
                 List<Message> msg = (List<Message>) event.data();
                 if (msg != null) {
-                    messages.addAll(msg);
+                    messages.addAll(msg.stream().filter(this::shouldProcessMessages).toList());
                     processMessage();
                 }
             }

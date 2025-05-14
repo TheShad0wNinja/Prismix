@@ -6,14 +6,19 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
+<?import javafx.geometry.Insets?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.tavern.client.components.ChatPane"
             >
 
     <center>
-        <ScrollPane style="-fx-background: -fx-background-color-theme" fx:id="chatScrollPane" fitToWidth="true" maxWidth="Infinity">
-            <VBox fx:id="chatArea" spacing="10" maxWidth="Infinity" />
+        <ScrollPane style="-fx-background: -fx-background-color-theme" styleClass="scroll-bar" fx:id="chatScrollPane" fitToWidth="true" maxWidth="Infinity">
+            <VBox fx:id="chatArea" spacing="20" maxWidth="Infinity">
+                <padding>
+                    <Insets topRightBottomLeft="10" />
+                </padding>
+            </VBox>
         </ScrollPane>
     </center>
     

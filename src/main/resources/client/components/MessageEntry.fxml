@@ -10,14 +10,15 @@
 <fx:root type="javafx.scene.layout.HBox" xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
          maxWidth="Infinity"
->
+         spacing="25"
+    >
     <ImageView fx:id="avatar"/>
-    <VBox>
-        <HBox>
-            <Label fx:id="name"/>
+    <VBox spacing="5" HBox.hgrow="ALWAYS">
+        <HBox alignment="BASELINE_CENTER">
+            <Label lineSpacing="1" fx:id="name" style="-fx-font-size: 16px; -fx-font-weight: bold"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Label fx:id="timestamp"/>
+            <Label lineSpacing="1" fx:id="timestamp" style="-fx-font-size: 12px"/>
         </HBox>
-        <Label fx:id="content"/>
+        <Label fx:id="content" wrapText="true"/>
     </VBox>
 </fx:root>
