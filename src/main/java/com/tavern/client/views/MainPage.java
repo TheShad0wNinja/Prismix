@@ -1,9 +1,6 @@
 package com.tavern.client.views;
 
-import com.tavern.client.components.Cleanable;
-import com.tavern.client.components.MainHeader;
-import com.tavern.client.components.MainSidebar;
-import com.tavern.client.components.RoomPane;
+import com.tavern.client.components.*;
 import com.tavern.client.core.ApplicationEvent;
 import com.tavern.client.core.EventListener;
 import com.tavern.client.handlers.ApplicationContext;
@@ -64,12 +61,26 @@ public class MainPage implements Initializable, Cleanable, EventListener {
         });
     }
 
+    private void showDirectPane() {
+        if (currentMainContent != null)
+            currentMainContent.clean();
+
+        currentMainContent = new DirectMessagesPane();
+        Platform.runLater(() -> {
+            root.setCenter((Node) currentMainContent);
+        });
+    }
+
     @Override
     public void onEvent(ApplicationEvent event) {
         switch (event.type()) {
             case ROOM_SELECTED -> {
                 showRoomPane((Room) event.data());
             }
+            case DIRECT_SCREEN_SELECTED -> {
+                showDirectPane();
+            }
         }
     }
+
 }

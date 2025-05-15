@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import com.tavern.client.components.DirectUserSidebar?>
+
+<?import com.tavern.client.components.DirectMessagePane?>
+<fx:root type="javafx.scene.layout.BorderPane" xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+            >
+
+    <left>
+        <DirectUserSidebar />
+    </left>
+
+    <center>
+        <DirectMessagePane />
+    </center>
+
+</fx:root>

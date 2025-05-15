@@ -201,13 +201,26 @@ ListView {
 ListView .list-cell {
     -fx-background-color: -fx-surface-color;
     -fx-text-fill: -fx-on-surface-color;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+}
+
+ListView .list-cell.exists {
+    -fx-cursor: HAND;
+}
+
+ListView .list-cell.exists:hover {
+    -fx-background-color: derive(-fx-surface-color, -20%);
+    -fx-text-fill: -fx-on-primary-color;
 }
 
 ListView .list-cell:odd {
-    -fx-background-color: derive(-fx-surface-color, 5%);
+    -fx-background-color: -fx-surface-color;
+    -fx-text-fill: -fx-on-surface-color;
 }
 
 ListView .list-cell:selected {
-    -fx-background-color: derive(-fx-primary-color, -20%);
+    -fx-background-color: derive(-fx-surface-color, -20%);
     -fx-text-fill: -fx-on-primary-color;
+    -fx-cursor: NONE;
 }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.image.ImageView?>
+<fx:root type="javafx.scene.layout.BorderPane" xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+            >
+    <top>
+        <HBox
+                style="-fx-background-color: -fx-surface-variant-color"
+                spacing="20"
+        >
+            <padding>
+                <Insets topRightBottomLeft="5" />
+            </padding>
+
+            <ImageView fx:id="avatar" />
+            <Label fx:id="displayName" />
+
+            <Region HBox.hgrow="ALWAYS" />
+
+            <Button fx:id="callButton">
+                <text>
+                    📞
+                </text>
+            </Button>
+        </HBox>
+    </top>
+
+</fx:root>
