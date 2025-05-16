@@ -1,5 +1,6 @@
 package com.tavern.client.components;
 
+import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.layout.BorderPane;
@@ -9,6 +10,12 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class DirectMessagesPane extends BorderPane implements Initializable, Cleanable {
+
+    @FXML
+    private DirectUserSidebar userSidebar;
+
+    @FXML
+    private DirectMessagePane messagePane;
 
     public DirectMessagesPane() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/client/components/DirectMessagesPane.fxml"));
@@ -27,6 +34,7 @@ public class DirectMessagesPane extends BorderPane implements Initializable, Cle
 
     @Override
     public void clean() {
-
+        userSidebar.clean();
+        messagePane.clean();
     }
 }

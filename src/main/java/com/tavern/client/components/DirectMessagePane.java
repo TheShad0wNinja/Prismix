@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 
-public class DirectMessagePane extends BorderPane implements EventListener, Initializable {
+public class DirectMessagePane extends BorderPane implements EventListener, Initializable, Cleanable {
     private final static int AVATAR_SIZE = 40;
     @FXML
     private ImageView avatar;
@@ -29,6 +29,8 @@ public class DirectMessagePane extends BorderPane implements EventListener, Init
     private Label displayName;
     @FXML
     private Button callButton;
+
+    private ChatPane chatPane;
 
     public DirectMessagePane() {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/client/components/DirectMessagePane.fxml"));
@@ -52,9 +54,13 @@ public class DirectMessagePane extends BorderPane implements EventListener, Init
                 avatar.setImage(SwingFXUtils.toFXImage((BufferedImage) AvatarHelper.getRoundedImageIcon( AvatarHelper.getAvatarImageIcon(user.getAvatar(), AVATAR_SIZE, AVATAR_SIZE) , AVATAR_SIZE, AVATAR_SIZE, 5).getImage(), null));
                 displayName.setText(user.getDisplayName());
 
+                if (chatPane != null)
+                    chatPane.clean();
+
                 FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/client/components/ChatPane.fxml"));
                 try {
                     Node n = fxmlLoader.load();
+                    chatPane = fxmlLoader.getController();
                     setCenter(n);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -65,7 +71,12 @@ public class DirectMessagePane extends BorderPane implements EventListener, Init
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        System.out.println("IM HERE");
         ApplicationContext.getEventBus().subscribe(this);
+    }
+
+    @Override
+    public void clean() {
+        ApplicationContext.getEventBus().unsubscribe(this);
+        chatPane.clean();
     }
 }

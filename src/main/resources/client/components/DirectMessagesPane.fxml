@@ -13,11 +13,11 @@
             >
 
     <left>
-        <DirectUserSidebar />
+        <DirectUserSidebar fx:id="userSidebar" />
     </left>
 
     <center>
-        <DirectMessagePane />
+        <DirectMessagePane fx:id="messagePane" />
     </center>
 
 </fx:root>

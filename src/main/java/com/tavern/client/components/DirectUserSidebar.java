@@ -24,7 +24,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
 
-public class DirectUserSidebar extends VBox implements Initializable, EventListener {
+public class DirectUserSidebar extends VBox implements Initializable, EventListener, Cleanable {
     @FXML
     public ListView userList;
 
@@ -72,6 +72,11 @@ public class DirectUserSidebar extends VBox implements Initializable, EventListe
             });
         }
 
+    }
+
+    @Override
+    public void clean() {
+        ApplicationContext.getEventBus().unsubscribe(this);
     }
 
     public static class UserEntryCell extends ListCell<User> {
