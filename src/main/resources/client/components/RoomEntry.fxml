@@ -7,14 +7,10 @@
 
 <fx:root xmlns="http://javafx.com/javafx"
          xmlns:fx="http://javafx.com/fxml"
-         type="javafx.scene.control.Button"
-         styleClass="wrapper">
-
-    <graphic>
-        <ImageView fx:id="roomAvatar" fitHeight="40" fitWidth="40" preserveRatio="true"/>
-    </graphic>
-
+         type="javafx.scene.layout.StackPane"
+>
     <padding>
-        <Insets topRightBottomLeft="5" />
+        <Insets top="6" bottom="6" />
     </padding>
+    <ImageView fx:id="roomAvatar" fitHeight="40" fitWidth="40" preserveRatio="true"/>
 </fx:root>

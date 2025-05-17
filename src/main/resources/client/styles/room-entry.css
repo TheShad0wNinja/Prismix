@@ -3,6 +3,7 @@
     -fx-background-radius: 10px;
     -fx-border-radius: 10px;
     -fx-cursor: hand;
+    -fx-padding: 20px;
 }
 
 .wrapper:hover {

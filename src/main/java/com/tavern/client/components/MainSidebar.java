@@ -10,12 +10,10 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 
 import java.io.IOException;
@@ -26,17 +24,14 @@ import java.util.ResourceBundle;
 
 public class MainSidebar extends VBox implements Initializable, EventListener {
     @FXML
-    private VBox roomsPanel;
+    private ListView<Object> roomsList;
 
-    @FXML
-    private ScrollPane scrollPane;
+    private RoomEntryButton directMessagesBtn;
+    private RoomEntryButton createRoomBtn;
+    private RoomEntryButton discoverRoomBtn;
 
-    private Button directMessagesBtn;
-    private Button createRoomBtn;
-    private Button discoverRoomBtn;
-
-    private final ObservableList<Room> rooms = FXCollections.observableArrayList();
-    private ObservableList<Node> roomsPanelChildren;
+    private final ObservableList<Object> displayedItems = FXCollections.observableArrayList();
+    private final List<Room> rooms = new ArrayList<>();
 
     public MainSidebar() {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/client/components/MainSidebar.fxml"));
@@ -46,61 +41,103 @@ public class MainSidebar extends VBox implements Initializable, EventListener {
         try {
             fxmlLoader.load();
         } catch (IOException e) {
-            System.out.println("ERROR: " + e.getMessage());
+            System.out.println("ERROR: ");
+            e.printStackTrace();
         }
     }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        roomsPanelChildren = roomsPanel.getChildren();
-        roomsPanel.setSpacing(5);
-        roomsPanel.setPadding(new Insets(5));
-
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        roomsList.setCellFactory(_ -> new RoomEntryCell());
+        roomsList.setItems(displayedItems);
 
         directMessagesBtn = new RoomEntryButton(
                 "Direct Messages",
                 null,
                 () -> {
                     ApplicationContext.getEventBus().publish(new ApplicationEvent(ApplicationEvent.Type.DIRECT_SCREEN_SELECTED, null));
-                },
-                (eventType) -> {
-                    if (eventType == null)
-                        return false;
-
-                    return eventType == ApplicationEvent.Type.DIRECT_SCREEN_SELECTED;
+                }
+        );
+        discoverRoomBtn = new RoomEntryButton(
+                "Discover Room",
+                null,
+                () -> {
+                    DiscoverRoomDialogue dialogue = new DiscoverRoomDialogue(this.getScene().getWindow());
+                    dialogue.showAndWait();
                 }
         );
 
-        rooms.addListener((javafx.collections.ListChangeListener<? super Room>) c -> {
-            updateRoomList();
-        });
+        roomsList.setOnMouseClicked(this::handleItemClick);
 
         ApplicationContext.getEventBus().subscribe(this);
         ApplicationContext.getRoomHandler().updateRooms();
     }
 
-    private void updateRoomList() {
+    private void handleItemClick(MouseEvent mouseEvent) {
+        if (roomsList.getSelectionModel().getSelectedItem() == null)
+        return;
+
+        Object item = roomsList.getSelectionModel().getSelectedItem();
+
+        if (item instanceof Room r) {
+            ApplicationContext.getEventBus().publish(new ApplicationEvent(
+                    ApplicationEvent.Type.ROOM_SELECTED,
+                    r
+            ));
+        } else if (item instanceof RoomEntryButton r) {
+            r.performAction();
+        }
+    }
+
+    private void rebuildDisplayedItems() {
         Platform.runLater(() -> {
-            roomsPanelChildren.forEach(room -> {
-                RoomEntry r = (RoomEntry) room;
-                r.clean();
-            });
-            roomsPanelChildren.clear();
-            roomsPanelChildren.add(directMessagesBtn);
-            for (Room room : rooms) {
-                Parent roomEntry = new RoomEntry(room);
-                roomsPanelChildren.add(roomEntry);
-            }
+            displayedItems.clear();
+
+            if (directMessagesBtn != null)
+                displayedItems.add(directMessagesBtn);
+
+            displayedItems.addAll(rooms);
+
+            if (discoverRoomBtn != null)
+                displayedItems.add(discoverRoomBtn);
         });
+    }
+
+    public static class RoomEntryCell extends ListCell<Object> {
+
+        private final RoomEntry roomEntry;
+
+        public RoomEntryCell() {
+            roomEntry = new RoomEntry();
+        }
+
+        @Override
+        protected void updateItem(Object item, boolean empty) {
+            super.updateItem(item, empty);
+
+            if (empty || item == null) {
+                setText(null);
+                setGraphic(null);
+            } else if (item instanceof Room r) {
+                roomEntry.setRoom(r);
+                setGraphic(roomEntry);
+            } else if (item instanceof RoomEntryButton r) {
+                setGraphic(r);
+            } else {
+                setText(item.toString());
+            }
+        }
     }
 
     @Override
     public void onEvent(ApplicationEvent event) {
         if (event.type() == ApplicationEvent.Type.ROOM_LIST_UPDATED) {
             List<Room> rooms = (List<Room>) event.data();
-            this.rooms.setAll(rooms);
+            if(rooms != null) {
+                this.rooms.clear();
+                this.rooms.addAll(rooms);
+                rebuildDisplayedItems();
+            }
         }
     }
 }

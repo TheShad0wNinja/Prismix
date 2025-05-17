@@ -26,7 +26,7 @@ import java.util.ResourceBundle;
 
 public class DirectUserSidebar extends VBox implements Initializable, EventListener, Cleanable {
     @FXML
-    public ListView userList;
+    public ListView<User> userList;
 
     private final ObservableList<User> users = FXCollections.observableArrayList();
     private User previouslySelectedUser;

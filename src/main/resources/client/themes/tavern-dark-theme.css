@@ -138,7 +138,7 @@ Hyperlink:visited {
     -fx-border-radius: 4px;
     -fx-border-color: -fx-outline-color;
     -fx-border-width: 1px;
-    -fx-padding: 5px;
+    -fx-padding: 0;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0.0, 0, 3);
 }
 
@@ -195,32 +195,27 @@ TableView .table-row-cell:selected {
 
 /* List styling - like tavern notice boards */
 ListView {
-    -fx-background-color: -fx-surface-color;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
 }
 
 ListView .list-cell {
-    -fx-background-color: -fx-surface-color;
-    -fx-text-fill: -fx-on-surface-color;
-    -fx-border-radius: 5px;
-    -fx-background-radius: 5px;
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-on-background-color;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
 }
 
-ListView .list-cell.exists {
+ListView .list-cell:filled {
     -fx-cursor: HAND;
 }
 
-ListView .list-cell.exists:hover {
-    -fx-background-color: derive(-fx-surface-color, -20%);
-    -fx-text-fill: -fx-on-primary-color;
+ListView .list-cell:filled:hover {
+    -fx-background-color: derive(-fx-background-color-theme, 40%);
 }
 
-ListView .list-cell:odd {
-    -fx-background-color: -fx-surface-color;
-    -fx-text-fill: -fx-on-surface-color;
-}
-
-ListView .list-cell:selected {
-    -fx-background-color: derive(-fx-surface-color, -20%);
-    -fx-text-fill: -fx-on-primary-color;
-    -fx-cursor: NONE;
+ListView .list-cell:filled:selected:focused, .list-cell:filled:selected {
+    -fx-background-color: derive(-fx-background-color-theme, 40%);
+    -fx-cursor: None;
 }
